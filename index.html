@@ -1415,7 +1415,9 @@
       const result = await listAll(pendingRef);
       const files = await Promise.all(result.items.map(async item => {
         const url = await getDownloadURL(item);
-        return { name: item.name, url, fullPath: item.fullPath, size: '' };
+        let size = '';
+        try { const meta = await getMetadata(item); size = (meta.size / 1024).toFixed(0) + ' KB'; } catch(e) {}
+        return { name: item.name, url, fullPath: item.fullPath, size };
       }));
       renderBolFiles(files);
     } catch(e) {
@@ -1533,7 +1535,7 @@
   window.archiveBolFiles = async function() {
     const result = await Swal.fire({
       title: 'Archive BOL files?',
-      text: 'This will record all pending BOLs as archived in Firestore and clear the pending list.',
+      text: 'Move all pending BOLs into a monthly archive folder in Storage.',
       icon: 'question', showCancelButton: true,
       confirmButtonColor: 'var(--accent)', confirmButtonText: 'Archive'
     });
@@ -1545,25 +1547,22 @@
       if (!listResult.items.length) { Swal.fire('No files', 'Nothing to archive.', 'info'); return; }
       const now = new Date();
       const monthYear = now.toLocaleString('default', { month: 'long' }) + ' ' + now.getFullYear();
-      const batch = writeBatch(db);
       let count = 0;
       for (const item of listResult.items) {
-        // Record archive entry in Firestore
+        // Fetch the file bytes using the download URL (CORS now allowed)
         const url = await getDownloadURL(item);
-        batch.set(doc(collection(db, 'bolArchive')), {
-          name: item.name,
-          fullPath: item.fullPath,
-          url,
-          month: monthYear,
-          archivedAt: serverTimestamp()
-        });
-        // Delete from pending in Storage
+        const response = await fetch(url);
+        if (!response.ok) throw new Error('Could not fetch ' + item.name);
+        const blob = await response.blob();
+        // Upload to archive folder
+        const archiveRef = ref(storage, BOL_ARCHIVE_PATH + '/' + monthYear + '/' + item.name);
+        await uploadBytesResumable(archiveRef, blob);
+        // Delete from pending
         await deleteObject(item);
         count++;
       }
-      await batch.commit();
       loadBolFiles();
-      Swal.fire({ title: 'Archived!', html: count + ' BOL' + (count > 1 ? 's' : '') + ' archived to <strong>' + monthYear + '</strong>.', icon: 'success' });
+      Swal.fire({ title: 'Archived!', html: count + ' BOL' + (count > 1 ? 's' : '') + ' moved to <strong>' + monthYear + '</strong>.', icon: 'success' });
     } catch(err) {
       Swal.fire('Error', err.message, 'error');
     }
