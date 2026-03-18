@@ -803,6 +803,7 @@
   let allPallets = [];
   let allStores  = [];
   let allHazmat  = [];
+  let allArchiveBolDates = {};
   let currentDetailStore = null;
   let stagedBolFiles = [];
   let dashFilter = 'all';
@@ -871,8 +872,22 @@
   window.loadDashboard = async function() {
     document.getElementById('dashboard-table-wrap').innerHTML = '<div class="loading">Loading pallets...</div>';
     try {
+      // Load active pallets
       const snap = await getDocs(query(collection(db, PALLETS), orderBy('createdAt', 'desc')));
       allPallets = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+
+      // Build archive BOL date index (most recent bolDate per store)
+      allArchiveBolDates = {};
+      const archSnap = await getDocs(collection(db, ARCHIVE));
+      archSnap.docs.forEach(d => {
+        const data = d.data();
+        if (!data.store || !data.bol || !data.bolDate) return;
+        const seconds = data.bolDate?.seconds || 0;
+        if (!allArchiveBolDates[data.store] || seconds > allArchiveBolDates[data.store]) {
+          allArchiveBolDates[data.store] = seconds;
+        }
+      });
+
       renderDashboard();
     } catch(e) {
       document.getElementById('dashboard-table-wrap').innerHTML = `<div class="empty" style="color:var(--danger)">Error loading data: ${e.message}</div>`;
@@ -1006,11 +1021,17 @@
   }
 
   function getLastRouted(pallets) {
+    const store = pallets[0]?.store;
+    const archiveSeconds = allArchiveBolDates[store] || 0;
     const withBol = pallets.filter(p => p.bol && p.bolDate);
-    if (!withBol.length) return null;
-    const latest = withBol.sort((a,b) => (b.bolDate?.seconds||0) - (a.bolDate?.seconds||0))[0];
-    if (!latest.bolDate) return null;
-    return new Date(latest.bolDate.seconds * 1000).toLocaleDateString();
+    let activeSeconds = 0;
+    if (withBol.length) {
+      const latest = withBol.sort((a,b) => (b.bolDate?.seconds||0) - (a.bolDate?.seconds||0))[0];
+      activeSeconds = latest.bolDate?.seconds || 0;
+    }
+    const bestSeconds = Math.max(activeSeconds, archiveSeconds);
+    if (!bestSeconds) return null;
+    return new Date(bestSeconds * 1000).toLocaleDateString();
   }
 
   window.setDashTab = function(el, filter) {
@@ -1378,7 +1399,7 @@
   // ════════════════════════════════
   // BOL CENTER (Google Drive via Apps Script)
   // ════════════════════════════════
-  const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbys0Buxj-bGMKgLQErJGhb3tUlHM1Tph3CiW1kLiqAjthWvoxpn7UJKbgMhgfnedYJHSw/exec'; // ← paste your existing Apps Script web app URL here
+  const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbx-IF-BA7xWdRc9agBvg84-RJitw2f_GX-GcEKVU83Sf-0Ic1MJhBe7F3KUQ-ltXXA0bA/exec'; // ← paste your existing Apps Script web app URL here
 
   window.loadBolFiles = async function() {
     if (!APPS_SCRIPT_URL) {
