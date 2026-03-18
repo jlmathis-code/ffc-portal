@@ -909,11 +909,11 @@
     const orderedStores = [...regularStores, ...bottomFiltered];
     const outboundDests = [...new Set(pallets.filter(p => p.type === 'other').map(p => p.store))].sort();
 
-    let rows = '';
+    let html = '';
 
-    // Non-store section
+    // ── Non-Store Table
     if (outboundDests.length) {
-      rows += `<tr><td colspan="6" style="background:var(--purple-bg);color:var(--purple);font-size:11px;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;padding:8px 14px;border-bottom:1px solid var(--purple-border)">Non-Store Pallets</td></tr>`;
+      let nsRows = '';
       outboundDests.forEach(dest => {
         const dp = storePallets[dest] || [];
         const bc = dp.filter(p => p.bol && p.bol.trim()).length;
@@ -923,26 +923,33 @@
         if (dashFilter === 'bol' && !hasBol) return;
         const weight = dp.reduce((s,p) => s+(Number(p.weight)||0), 0);
         const alerts = buildAlertBadges(dp, bc);
-        rows += `<tr class="clickable${hasBol?' row-bol':''}" onclick="openDetail('${dest}')">
+        nsRows += `<tr class="clickable${hasBol?' row-bol':''}" onclick="openDetail('${dest}')">
           <td><div class="store-name">${dest}</div></td>
-          <td><div class="badge-alerts">${alerts}</div></td>
+          <td><div class="badge-alerts">${alerts || '<span class="badge neutral">—</span>'}</div></td>
           <td class="mono">${dp.length}</td>
           <td class="mono">${weight.toLocaleString()} lbs</td>
-          <td>—</td>
           <td style="text-align:right;color:var(--${hasBol?'success':'text3'});font-size:12px;font-weight:500">View →</td>
         </tr>`;
       });
+      if (nsRows) {
+        html += `
+          <div style="margin-bottom:24px">
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+              <span style="background:var(--purple);color:#fff;font-size:10px;font-weight:700;padding:3px 10px;border-radius:4px;letter-spacing:0.06em;text-transform:uppercase">Non-Store Pallets</span>
+            </div>
+            <table class="data-table">
+              <thead><tr>
+                <th>Destination</th><th>Alerts</th><th>Count</th><th>Total Weight</th><th></th>
+              </tr></thead>
+              <tbody>${nsRows}</tbody>
+            </table>
+          </div>`;
+      }
     }
 
-    // Store section
-    if (orderedStores.length) {
-      rows += `<tr><td colspan="6" style="background:var(--success-bg);color:var(--success);font-size:11px;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;padding:8px 14px;border-bottom:1px solid var(--success-border)">Store Pallets</td></tr>`;
-    }
-
-    // Also show all stores even with 0 pallets
-    const combined = allStores;
-
-    combined.forEach(storeName => {
+    // ── Store Table
+    let storeRows = '';
+    allStores.forEach(storeName => {
       const sp = storePallets[storeName] || [];
       const bc = sp.filter(p => p.bol && p.bol.trim()).length;
       const hasAlerts = sp.some(p => p.priority || p.overDim);
@@ -952,8 +959,7 @@
       const weight = sp.reduce((s,p) => s+(Number(p.weight)||0), 0);
       const alerts = buildAlertBadges(sp, bc);
       const lastRouted = getLastRouted(sp);
-      const isBottom = false;
-      rows += `<tr class="clickable${hasBol?' row-bol':''}" onclick="${sp.length?`openDetail('${storeName}')`:'void(0)'}" style="${sp.length?'':'opacity:0.55;cursor:default'}${isBottom?';border-top:2px solid var(--border2)':''}">
+      storeRows += `<tr class="clickable${hasBol?' row-bol':''}" onclick="${sp.length?`openDetail('${storeName}')`:'void(0)'}" style="${sp.length?'':'opacity:0.55;cursor:default'}">
         <td><div class="store-name">${storeName}</div></td>
         <td><div class="badge-alerts">${alerts || '<span class="badge neutral">—</span>'}</div></td>
         <td class="mono">${sp.length || '<span style="color:var(--text3)">0</span>'}</td>
@@ -963,15 +969,24 @@
       </tr>`;
     });
 
-    if (!rows) rows = '<tr><td colspan="6" class="empty">No pallets match this filter</td></tr>';
+    if (!storeRows) storeRows = '<tr><td colspan="6" class="empty">No stores match this filter</td></tr>';
 
-    document.getElementById('dashboard-table-wrap').innerHTML = `
-      <table class="data-table">
-        <thead><tr>
-          <th>Store</th><th>Alerts</th><th>Pallets</th><th>Weight</th><th>Last Routed</th><th></th>
-        </tr></thead>
-        <tbody>${rows}</tbody>
-      </table>`;
+    html += `
+      <div>
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+          <span style="background:var(--success);color:#fff;font-size:10px;font-weight:700;padding:3px 10px;border-radius:4px;letter-spacing:0.06em;text-transform:uppercase">Store Pallets</span>
+        </div>
+        <table class="data-table">
+          <thead><tr>
+            <th>Store</th><th>Alerts</th><th>Count</th><th>Total Weight</th><th>Last Routed</th><th></th>
+          </tr></thead>
+          <tbody>${storeRows}</tbody>
+        </table>
+      </div>`;
+
+    if (!html) html = '<div class="empty">No pallets match this filter</div>';
+
+    document.getElementById('dashboard-table-wrap').innerHTML = html;
   }
 
   function buildAlertBadges(pallets, bolCount) {
