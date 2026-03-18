@@ -1,0 +1,1601 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FFC Pallet Portal</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #f7f8fa;
+      --surface: #ffffff;
+      --surface2: #f0f2f5;
+      --border: #e2e5ea;
+      --border2: #c8cdd6;
+      --text: #0f1117;
+      --text2: #5a6170;
+      --text3: #9aa0aa;
+      --accent: #2563eb;
+      --accent-bg: #eff4ff;
+      --accent-border: #bfcfff;
+      --success: #16a34a;
+      --success-bg: #f0fdf4;
+      --success-border: #86efac;
+      --success-row: #e8faf0;
+      --success-row-border: #bbf7d0;
+      --warn: #d97706;
+      --warn-bg: #fffbeb;
+      --warn-border: #fcd34d;
+      --danger: #dc2626;
+      --danger-bg: #fef2f2;
+      --danger-border: #fca5a5;
+      --orange: #ea580c;
+      --orange-bg: #fff7ed;
+      --orange-border: #fed7aa;
+      --purple: #7c3aed;
+      --purple-bg: #f5f3ff;
+      --purple-border: #c4b5fd;
+      --radius: 8px;
+      --radius-lg: 12px;
+      font-family: 'DM Sans', sans-serif;
+    }
+    html, body { height: 100%; background: var(--bg); color: var(--text); font-size: 14px; line-height: 1.5; }
+
+    /* ── LAYOUT ── */
+    .shell { display: flex; height: 100vh; overflow: hidden; }
+    .sidebar { width: 220px; min-width: 220px; background: var(--surface); border-right: 1px solid var(--border); display: flex; flex-direction: column; overflow-y: auto; }
+    .main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+    .topbar { background: var(--surface); border-bottom: 1px solid var(--border); padding: 12px 24px; display: flex; align-items: center; gap: 12px; flex-shrink: 0; }
+    .topbar-title { font-size: 15px; font-weight: 500; color: var(--text); flex: 1; }
+    .topbar-actions { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+    .content { padding: 24px; flex: 1; overflow-y: auto; }
+
+    /* ── SIDEBAR ── */
+    .sidebar-logo { padding: 18px 20px 14px; border-bottom: 1px solid var(--border); }
+    .sidebar-logo .wordmark { font-size: 13px; font-weight: 600; color: var(--text); letter-spacing: 0.02em; }
+    .sidebar-logo .sub { font-size: 11px; color: var(--text3); margin-top: 2px; }
+    .logo-v { display: inline-block; background: var(--accent); color: #fff; font-size: 10px; font-weight: 600; padding: 1px 6px; border-radius: 4px; margin-left: 6px; vertical-align: middle; }
+    .nav-section { padding: 12px 12px 4px; font-size: 10px; font-weight: 600; color: var(--text3); letter-spacing: 0.08em; text-transform: uppercase; }
+    .nav-item { display: flex; align-items: center; gap: 10px; padding: 8px 12px; margin: 1px 8px; border-radius: var(--radius); cursor: pointer; font-size: 13px; color: var(--text2); transition: all 0.15s; user-select: none; }
+    .nav-item:hover { background: var(--surface2); color: var(--text); }
+    .nav-item.active { background: var(--accent-bg); color: var(--accent); font-weight: 500; }
+    .nav-item svg { width: 16px; height: 16px; opacity: 0.7; flex-shrink: 0; }
+    .nav-item.active svg { opacity: 1; }
+    .nav-pill { margin-left: auto; background: var(--danger); color: #fff; font-size: 10px; font-weight: 600; padding: 1px 6px; border-radius: 10px; }
+    .nav-pill.green { background: var(--success); }
+    .sidebar-footer { margin-top: auto; padding: 12px; border-top: 1px solid var(--border); }
+    .user-row { display: flex; align-items: center; gap: 8px; padding: 6px 8px; border-radius: var(--radius); cursor: default; }
+    .avatar { width: 28px; height: 28px; border-radius: 50%; background: var(--accent-bg); color: var(--accent); font-size: 11px; font-weight: 600; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .user-name { font-size: 12px; font-weight: 500; color: var(--text); }
+    .user-role { font-size: 11px; color: var(--text3); }
+
+    /* ── BUTTONS ── */
+    .btn { display: inline-flex; align-items: center; gap: 6px; padding: 7px 14px; border-radius: var(--radius); font-size: 13px; font-weight: 500; cursor: pointer; border: 1px solid var(--border); background: var(--surface); color: var(--text2); transition: all 0.15s; font-family: inherit; white-space: nowrap; }
+    .btn:hover { background: var(--surface2); color: var(--text); border-color: var(--border2); }
+    .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    .btn.primary { background: var(--accent); color: #fff; border-color: var(--accent); }
+    .btn.primary:hover { background: #1d4ed8; }
+    .btn.success { background: var(--success-bg); color: var(--success); border-color: var(--success-border); }
+    .btn.success:hover { background: #dcfce7; }
+    .btn.danger { background: var(--danger-bg); color: var(--danger); border-color: var(--danger-border); }
+    .btn.danger:hover { background: #fee2e2; }
+    .btn.warn { background: var(--warn-bg); color: var(--warn); border-color: var(--warn-border); }
+    .btn.purple { background: var(--purple-bg); color: var(--purple); border-color: var(--purple-border); }
+    .btn.sm { padding: 4px 10px; font-size: 12px; }
+
+    /* ── STATS ── */
+    .stats-row { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin-bottom: 24px; }
+    .stat-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 16px 20px; }
+    .stat-label { font-size: 11px; font-weight: 600; color: var(--text3); letter-spacing: 0.06em; text-transform: uppercase; margin-bottom: 6px; }
+    .stat-value { font-size: 26px; font-weight: 300; color: var(--text); font-family: 'DM Mono', monospace; letter-spacing: -0.02em; }
+    .stat-sub { font-size: 11px; color: var(--text3); margin-top: 4px; }
+    .stat-dot { display: inline-block; width: 6px; height: 6px; border-radius: 50%; margin-right: 4px; vertical-align: middle; }
+
+    /* ── BADGES ── */
+    .badge { display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; white-space: nowrap; }
+    .badge.priority { background: var(--danger-bg); color: var(--danger); border: 1px solid var(--danger-border); }
+    .badge.ready { background: var(--success-bg); color: var(--success); border: 1px solid var(--success-border); }
+    .badge.bol-attached { background: var(--success); color: #fff; border: 1px solid var(--success); gap: 6px; }
+    .badge.bol-attached .bol-count { background: rgba(255,255,255,0.25); color: #fff; font-size: 10px; font-weight: 700; padding: 0 5px; border-radius: 3px; font-family: 'DM Mono', monospace; line-height: 16px; }
+    .badge.od { background: var(--orange-bg); color: var(--orange); border: 1px solid var(--orange-border); }
+    .badge.hazmat { background: var(--warn-bg); color: var(--warn); border: 1px solid var(--warn-border); }
+    .badge.gunpowder { background: #0f0f0f; color: #fff; border: 1px solid #333; }
+    .badge.neutral { background: var(--surface2); color: var(--text3); border: 1px solid var(--border); }
+    .badge.purple { background: var(--purple-bg); color: var(--purple); border: 1px solid var(--purple-border); }
+
+    /* ── TABLES ── */
+    .data-table { width: 100%; border-collapse: collapse; background: var(--surface); border-radius: var(--radius-lg); overflow: hidden; border: 1px solid var(--border); }
+    .data-table thead th { background: var(--surface2); padding: 10px 14px; font-size: 11px; font-weight: 600; color: var(--text3); text-align: left; letter-spacing: 0.05em; text-transform: uppercase; border-bottom: 1px solid var(--border); white-space: nowrap; }
+    .data-table tbody tr { border-bottom: 1px solid var(--border); transition: background 0.1s; }
+    .data-table tbody tr:last-child { border-bottom: none; }
+    .data-table tbody tr.clickable { cursor: pointer; }
+    .data-table tbody tr.clickable:hover { filter: brightness(0.97); }
+    .data-table td { padding: 11px 14px; font-size: 13px; color: var(--text); vertical-align: middle; }
+    .data-table td.mono { font-family: 'DM Mono', monospace; font-size: 12px; color: var(--text2); }
+    .row-bol { background: var(--success-row) !important; border-left: 3px solid var(--success) !important; }
+    .row-bol td { border-bottom-color: var(--success-row-border); }
+    .row-bol .store-name { color: var(--success); }
+    .store-name { font-weight: 500; font-size: 13px; }
+    .date-chip { font-size: 11px; color: var(--success); font-weight: 500; background: var(--success-bg); padding: 2px 7px; border-radius: 4px; font-family: 'DM Mono', monospace; }
+    .date-none { font-size: 11px; color: var(--text3); }
+
+    /* ── FORMS ── */
+    .form-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 20px; margin-bottom: 16px; }
+    .form-card-title { font-size: 11px; font-weight: 600; color: var(--text3); letter-spacing: 0.06em; text-transform: uppercase; margin-bottom: 16px; }
+    .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .form-group { display: flex; flex-direction: column; gap: 5px; }
+    .form-group.full { grid-column: 1 / -1; }
+    .form-label { font-size: 12px; font-weight: 600; color: var(--text2); }
+    .form-input { padding: 8px 12px; border: 1px solid var(--border); border-radius: var(--radius); font-size: 13px; color: var(--text); background: var(--surface); font-family: 'DM Sans', sans-serif; transition: border 0.15s; outline: none; width: 100%; }
+    .form-input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(37,99,235,0.1); }
+    .form-input:disabled { background: var(--surface2); color: var(--text3); cursor: not-allowed; }
+    .prefix-wrap { display: flex; align-items: center; }
+    .prefix-wrap .prefix { padding: 8px 10px; background: var(--surface2); border: 1px solid var(--border); border-right: none; border-radius: var(--radius) 0 0 var(--radius); font-size: 13px; font-weight: 500; color: var(--text2); font-family: 'DM Mono', monospace; white-space: nowrap; }
+    .prefix-wrap .form-input { border-radius: 0 var(--radius) var(--radius) 0; border-left: none; }
+    .dims-wrap { display: flex; gap: 6px; align-items: center; }
+    .dims-sep { color: var(--text3); font-size: 12px; }
+    .check-row { display: flex; align-items: center; gap: 10px; padding: 10px 14px; border-radius: var(--radius); border: 1px solid var(--border); cursor: pointer; transition: all 0.15s; margin-bottom: 8px; }
+    .check-row:hover { border-color: var(--border2); background: var(--surface2); }
+    .check-row input[type="checkbox"] { width: 15px; height: 15px; flex-shrink: 0; accent-color: var(--accent); cursor: pointer; }
+    .check-label { font-size: 13px; font-weight: 500; flex: 1; }
+    .check-sub { font-size: 11px; color: var(--text3); }
+    .hazmat-row { display: flex; align-items: center; gap: 10px; padding: 10px 14px; border-radius: var(--radius); border: 1px solid var(--warn-border); background: var(--warn-bg); margin-bottom: 8px; }
+    .hazmat-row.inactive { border-color: var(--border); background: var(--surface); }
+    .hazmat-row input[type="checkbox"] { width: 15px; height: 15px; flex-shrink: 0; accent-color: var(--warn); cursor: pointer; }
+
+    /* ── SECTION HEADER ── */
+    .section-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; flex-wrap: wrap; gap: 8px; }
+    .section-title { font-size: 13px; font-weight: 600; color: var(--text); }
+
+    /* ── TABS ── */
+    .tabs { display: flex; gap: 2px; background: var(--surface2); padding: 3px; border-radius: var(--radius); width: fit-content; }
+    .tab { padding: 6px 14px; border-radius: 6px; font-size: 13px; font-weight: 500; cursor: pointer; color: var(--text2); transition: all 0.15s; user-select: none; white-space: nowrap; }
+    .tab.active { background: var(--surface); color: var(--text); box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
+
+    /* ── BOL BANNER ── */
+    .bol-banner { background: var(--surface); border: 1px solid var(--success-border); border-radius: var(--radius-lg); padding: 12px 16px; display: flex; align-items: center; gap: 12px; margin-bottom: 20px; cursor: pointer; transition: all 0.15s; }
+    .bol-banner:hover { background: var(--success-bg); }
+    .bol-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--success); flex-shrink: 0; animation: pulse 2s infinite; }
+    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+    .bol-banner-text { font-size: 13px; color: var(--success); font-weight: 500; flex: 1; }
+    .bol-banner-action { font-size: 12px; color: var(--text3); }
+
+    /* ── UPLOAD ZONE ── */
+    .upload-zone { border: 1.5px dashed var(--border2); border-radius: var(--radius-lg); padding: 32px; text-align: center; background: var(--surface); cursor: pointer; transition: all 0.2s; margin-bottom: 20px; }
+    .upload-zone:hover, .upload-zone.dragover { border-color: var(--accent); background: var(--accent-bg); }
+    .upload-zone-icon { font-size: 24px; color: var(--text3); margin-bottom: 10px; }
+    .upload-zone-title { font-size: 14px; font-weight: 500; color: var(--text); margin-bottom: 4px; }
+    .upload-zone-sub { font-size: 12px; color: var(--text3); }
+    .upload-zone-sub span { color: var(--accent); font-weight: 500; }
+
+    /* ── BOL FILE LIST ── */
+    .bol-file-item { display: flex; align-items: center; gap: 12px; padding: 12px 16px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); margin-bottom: 8px; }
+    .bol-file-icon { width: 32px; height: 32px; background: var(--danger-bg); border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; color: var(--danger); flex-shrink: 0; }
+    .bol-file-name { font-size: 13px; font-weight: 500; color: var(--text); }
+    .bol-file-meta { font-size: 11px; color: var(--text3); margin-top: 1px; }
+
+    /* ── PAGES ── */
+    .page { display: none; }
+    .page.active { display: flex; flex-direction: column; flex: 1; overflow: hidden; }
+    .page-scroll { flex: 1; overflow-y: auto; padding: 24px; }
+
+    /* ── LOADING / EMPTY ── */
+    .loading { padding: 40px; text-align: center; color: var(--text3); font-size: 13px; }
+    .empty { padding: 40px; text-align: center; color: var(--text3); font-size: 13px; }
+
+    /* ── INLINE TABLE INPUTS ── */
+    .tbl-input { padding: 5px 8px; border: 1px solid var(--border); border-radius: var(--radius); font-size: 12px; font-family: 'DM Mono', monospace; color: var(--text); background: var(--surface); outline: none; width: 120px; transition: border 0.15s; }
+    .tbl-input:focus { border-color: var(--accent); box-shadow: 0 0 0 2px rgba(37,99,235,0.1); }
+    .tbl-input.hazmat-input { background: var(--warn-bg); border-color: var(--warn-border); }
+    .tbl-input.hazmat-input:focus { border-color: var(--warn); }
+
+    /* ── MODAL ── */
+    .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: none; align-items: center; justify-content: center; z-index: 9000; padding: 20px; }
+    .modal-overlay.open { display: flex; }
+    .modal { background: var(--surface); border-radius: var(--radius-lg); width: 100%; max-width: 560px; max-height: 90vh; overflow-y: auto; box-shadow: 0 20px 60px rgba(0,0,0,0.2); }
+    .modal-header { padding: 20px 24px 0; display: flex; align-items: center; justify-content: space-between; }
+    .modal-title { font-size: 15px; font-weight: 600; color: var(--text); }
+    .modal-close { background: none; border: none; cursor: pointer; color: var(--text3); font-size: 18px; padding: 4px; border-radius: 4px; }
+    .modal-close:hover { background: var(--surface2); color: var(--text); }
+    .modal-body { padding: 20px 24px 24px; }
+    .modal-footer { padding: 0 24px 24px; display: flex; gap: 10px; justify-content: flex-end; }
+
+    /* ── LEGEND ── */
+    .legend { display: flex; align-items: center; gap: 20px; padding: 10px 14px; background: var(--surface2); border-radius: var(--radius); margin-bottom: 14px; flex-wrap: wrap; }
+    .legend-item { display: flex; align-items: center; gap: 6px; font-size: 11px; color: var(--text2); }
+    .legend-swatch { width: 12px; height: 12px; border-radius: 3px; flex-shrink: 0; }
+
+    /* ── MISC ── */
+    .divider { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
+    .text-mono { font-family: 'DM Mono', monospace; }
+    .text-muted { color: var(--text3); }
+    .badge-alerts { display: flex; flex-wrap: wrap; gap: 4px; }
+
+    /* SweetAlert overrides */
+    .swal2-container { z-index: 99999 !important; }
+  </style>
+</head>
+<body>
+
+<div class="shell">
+
+  <!-- ══════════════ SIDEBAR ══════════════ -->
+  <aside class="sidebar">
+    <div class="sidebar-logo">
+      <div class="wordmark">FFC Portal <span class="logo-v">v2</span></div>
+      <div class="sub">Fulfillment Center</div>
+    </div>
+
+    <div class="nav-section">Workspace</div>
+    <div class="nav-item active" onclick="showPage('dashboard')">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1" y="1" width="6" height="6" rx="1"/><rect x="9" y="1" width="6" height="6" rx="1"/><rect x="1" y="9" width="6" height="6" rx="1"/><rect x="9" y="9" width="6" height="6" rx="1"/></svg>
+      Dashboard
+    </div>
+    <div class="nav-item" onclick="showPage('entry')">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="2" width="12" height="12" rx="1.5"/><path d="M8 5v6M5 8h6"/></svg>
+      New Store Pallet
+    </div>
+    <div class="nav-item" onclick="showPage('outbound')">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 8h12M10 4l4 4-4 4"/><path d="M2 4v8"/></svg>
+      Non-Store Pallet
+    </div>
+
+    <div class="nav-section">Operations</div>
+    <div class="nav-item" onclick="showPage('gunpowder')">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="5"/><path d="M8 5v3l2 1"/></svg>
+      Gun Powder
+      <span class="nav-pill green" id="nav-hazmat-count" style="display:none">0</span>
+    </div>
+    <div class="nav-item" onclick="showPage('bols')">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 2h6l4 4v8a1 1 0 01-1 1H4a1 1 0 01-1-1V3a1 1 0 011-1z"/><path d="M9 2v5h5"/></svg>
+      BOL Center
+      <span class="nav-pill" id="nav-bol-count" style="display:none">0</span>
+    </div>
+    <div class="nav-item" onclick="showPage('archive')">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1" y="3" width="14" height="3" rx="1"/><path d="M2 6v7a1 1 0 001 1h10a1 1 0 001-1V6"/><path d="M6 10h4"/></svg>
+      Archive Search
+    </div>
+    <div class="nav-item" onclick="showPage('bugs')">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 2a3 3 0 00-3 3v4a3 3 0 006 0V5a3 3 0 00-3-3z"/><path d="M5 6H2M14 6h-3M5 10H3M13 10h-2"/></svg>
+      Bug Report
+    </div>
+
+    <div class="sidebar-footer">
+      <div class="user-row">
+        <div class="avatar">JM</div>
+        <div>
+          <div class="user-name">FFC Team</div>
+          <div class="user-role">Scheels FFC</div>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ══════════════ PAGES ══════════════ -->
+  <div class="main" id="main-area">
+
+    <!-- ── DASHBOARD ── -->
+    <div id="page-dashboard" class="page active">
+      <div class="topbar">
+        <div class="topbar-title">Logistics Dashboard</div>
+        <div class="topbar-actions">
+          <button class="btn success" id="bol-banner-btn" style="display:none" onclick="showPage('bols')">BOLs ready</button>
+          <button class="btn primary" onclick="showPage('entry')">+ New Pallet</button>
+          <button class="btn" onclick="loadDashboard()">↻ Refresh</button>
+        </div>
+      </div>
+      <div class="page-scroll">
+        <div class="stats-row">
+          <div class="stat-card">
+            <div class="stat-label">Active stores</div>
+            <div class="stat-value" id="stat-stores">--</div>
+            <div class="stat-sub" id="stat-stores-sub">Loading...</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Active pallets</div>
+            <div class="stat-value" id="stat-pallets">--</div>
+            <div class="stat-sub" id="stat-pallets-sub">Loading...</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">BOLs attached</div>
+            <div class="stat-value" id="stat-bols">--</div>
+            <div class="stat-sub" id="stat-bols-sub">Loading...</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Total weight</div>
+            <div class="stat-value" id="stat-weight">--</div>
+            <div class="stat-sub">lbs across all stores</div>
+          </div>
+        </div>
+
+        <div class="section-header">
+          <div class="section-title">Store Manifests</div>
+          <div class="tabs">
+            <div class="tab active" onclick="setDashTab(this,'all')">All stores</div>
+            <div class="tab" onclick="setDashTab(this,'alerts')">Has alerts</div>
+            <div class="tab" onclick="setDashTab(this,'bol')">BOL attached</div>
+          </div>
+        </div>
+
+        <div class="legend">
+          <div class="legend-item"><div class="legend-swatch" style="background:var(--success)"></div>BOL attached — has at least one pallet with a BOL number</div>
+          <div class="legend-item"><div class="legend-swatch" style="background:var(--surface2);border:1px solid var(--border2)"></div>Standard — no BOLs yet</div>
+        </div>
+
+        <div id="dashboard-table-wrap">
+          <div class="loading">Loading pallets...</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── DETAIL VIEW ── -->
+    <div id="page-detail" class="page">
+      <div class="topbar">
+        <div class="topbar-title" id="detail-title">Store Details</div>
+        <div class="topbar-actions">
+          <button class="btn" onclick="showPage('dashboard')">← Back</button>
+          <button class="btn success" onclick="saveAllBols()">Save All BOLs</button>
+          <button class="btn warn" onclick="saveAllHazmat()">Save Hazmat</button>
+          <button class="btn danger" onclick="processShipped()">Process Shipped</button>
+        </div>
+      </div>
+      <div class="page-scroll">
+        <div style="overflow-x:auto">
+          <table class="data-table" id="detail-table">
+            <thead>
+              <tr>
+                <th style="width:36px"><input type="checkbox" id="select-all-cb" onchange="toggleSelectAll(this)" style="accent-color:var(--accent)"></th>
+                <th>Date</th>
+                <th>Pallet ID</th>
+                <th>Status</th>
+                <th>Dims</th>
+                <th>Weight</th>
+                <th>Notes</th>
+                <th>Opt. Hazmat</th>
+                <th>BOL #</th>
+                <th>Hazmat ID</th>
+                <th style="width:60px"></th>
+              </tr>
+            </thead>
+            <tbody id="detail-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── NEW STORE PALLET ── -->
+    <div id="page-entry" class="page">
+      <div class="topbar">
+        <div class="topbar-title">New Store Pallet</div>
+        <div class="topbar-actions">
+          <button class="btn" onclick="showPage('dashboard')">Cancel</button>
+          <button class="btn primary" onclick="submitPalletEntry()">Save Entry</button>
+        </div>
+      </div>
+      <div class="page-scroll" style="max-width:760px">
+        <div class="form-card">
+          <div class="form-card-title">Pallet info</div>
+          <div class="form-grid">
+            <div class="form-group">
+              <label class="form-label">Store</label>
+              <select class="form-input" id="entry-store"><option value="">Select store...</option></select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Pallet ID</label>
+              <div class="prefix-wrap">
+                <span class="prefix">ACC</span>
+                <input class="form-input" id="entry-pallet-num" type="text" placeholder="123456" pattern="[0-9]{6}" maxlength="6">
+              </div>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Weight (lbs)</label>
+              <input class="form-input" id="entry-weight" type="number" placeholder="1500">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Dimensions (L × W × H)</label>
+              <div class="dims-wrap">
+                <input class="form-input" id="entry-length" type="number" value="48" style="text-align:center">
+                <span class="dims-sep">×</span>
+                <input class="form-input" id="entry-width" type="number" value="40" style="text-align:center">
+                <span class="dims-sep">×</span>
+                <input class="form-input" id="entry-height" type="number" value="60" style="text-align:center">
+              </div>
+            </div>
+            <div class="form-group full">
+              <label class="form-label">Notes</label>
+              <input class="form-input" id="entry-notes" type="text" placeholder="Required — describe pallet contents">
+            </div>
+          </div>
+        </div>
+
+        <div class="form-card">
+          <div class="form-card-title">Status flags — select at least one</div>
+          <div class="check-row" id="cr-priority" onclick="toggleCheck('entry-priority','cr-priority','var(--danger-border)','var(--danger-bg)')">
+            <input type="checkbox" id="entry-priority">
+            <span class="check-label" style="color:var(--danger)">Priority</span>
+            <span class="check-sub">Rush shipment</span>
+          </div>
+          <div class="check-row" id="cr-ready" onclick="toggleCheck('entry-ready','cr-ready','var(--success-border)','var(--success-bg)')">
+            <input type="checkbox" id="entry-ready">
+            <span class="check-label" style="color:var(--success)">Ready for pickup</span>
+            <span class="check-sub">Staged and ready</span>
+          </div>
+          <div class="check-row" id="cr-od" onclick="toggleCheck('entry-od','cr-od','var(--orange-border)','var(--orange-bg)')">
+            <input type="checkbox" id="entry-od">
+            <span class="check-label" style="color:var(--orange)">Over-dimension</span>
+            <span class="check-sub">Exceeds standard dims</span>
+          </div>
+        </div>
+
+        <div class="form-card">
+          <div class="form-card-title">Optional hazmat content</div>
+          <div class="hazmat-row" id="hr-primers">
+            <input type="checkbox" id="entry-primers" onchange="toggleHazmatQty('primers')">
+            <span style="font-size:13px;font-weight:500;color:var(--warn);flex:1">Primers</span>
+            <input class="form-input" id="entry-primers-qty" type="number" placeholder="Qty" style="width:90px" disabled>
+          </div>
+          <div class="hazmat-row inactive" id="hr-lithium">
+            <input type="checkbox" id="entry-lithium" onchange="toggleHazmatQty('lithium')">
+            <span style="font-size:13px;color:var(--text2);flex:1">Lithium batteries</span>
+            <input class="form-input" id="entry-lithium-qty" type="number" placeholder="Qty" style="width:90px" disabled>
+          </div>
+          <div class="hazmat-row inactive" id="hr-alkaline">
+            <input type="checkbox" id="entry-alkaline" onchange="toggleHazmatQty('alkaline')">
+            <span style="font-size:13px;color:var(--text2);flex:1">Alkaline batteries</span>
+            <input class="form-input" id="entry-alkaline-qty" type="number" placeholder="Qty" style="width:90px" disabled>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── NON-STORE PALLET ── -->
+    <div id="page-outbound" class="page">
+      <div class="topbar">
+        <div class="topbar-title">Non-Store Pallet Entry</div>
+        <div class="topbar-actions">
+          <button class="btn" onclick="showPage('dashboard')">Cancel</button>
+          <button class="btn purple" onclick="submitOutboundEntry()">Save Entry</button>
+        </div>
+      </div>
+      <div class="page-scroll" style="max-width:760px">
+        <div class="form-card">
+          <div class="form-card-title">Destination info</div>
+          <div class="form-grid">
+            <div class="form-group full">
+              <label class="form-label">Destination Name</label>
+              <input class="form-input" id="out-dest" type="text" placeholder="e.g. Vendor Name, Distribution Center">
+            </div>
+            <div class="form-group full">
+              <label class="form-label">Street Address</label>
+              <input class="form-input" id="out-street" type="text" placeholder="123 Main St">
+            </div>
+            <div class="form-group">
+              <label class="form-label">City</label>
+              <input class="form-input" id="out-city" type="text" placeholder="City">
+            </div>
+            <div class="form-group">
+              <label class="form-label">State</label>
+              <select class="form-input" id="out-state">
+                <option value="">--</option>
+                <option>AL</option><option>AK</option><option>AZ</option><option>AR</option><option>CA</option><option>CO</option><option>CT</option><option>DE</option>
+                <option>FL</option><option>GA</option><option>HI</option><option>ID</option><option>IL</option><option>IN</option><option>IA</option><option>KS</option>
+                <option>KY</option><option>LA</option><option>ME</option><option>MD</option><option>MA</option><option>MI</option><option>MN</option><option>MS</option>
+                <option>MO</option><option>MT</option><option>NE</option><option>NV</option><option>NH</option><option>NJ</option><option>NM</option><option>NY</option>
+                <option>NC</option><option>ND</option><option>OH</option><option>OK</option><option>OR</option><option>PA</option><option>RI</option><option>SC</option>
+                <option>SD</option><option>TN</option><option>TX</option><option>UT</option><option>VT</option><option>VA</option><option>WA</option><option>WV</option>
+                <option>WI</option><option>WY</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Zip Code</label>
+              <input class="form-input" id="out-zip" type="text" placeholder="58102" maxlength="10">
+            </div>
+          </div>
+        </div>
+        <div class="form-card">
+          <div class="form-card-title">Pallet details</div>
+          <div class="form-grid">
+            <div class="form-group">
+              <label class="form-label">Weight (lbs)</label>
+              <input class="form-input" id="out-weight" type="number" placeholder="1500">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Dimensions (L × W × H)</label>
+              <div class="dims-wrap">
+                <input class="form-input" id="out-length" type="number" value="48" style="text-align:center">
+                <span class="dims-sep">×</span>
+                <input class="form-input" id="out-width" type="number" value="40" style="text-align:center">
+                <span class="dims-sep">×</span>
+                <input class="form-input" id="out-height" type="number" value="60" style="text-align:center">
+              </div>
+            </div>
+            <div class="form-group full">
+              <label class="form-label">Notes</label>
+              <input class="form-input" id="out-notes" type="text" placeholder="Required — describe pallet contents">
+            </div>
+          </div>
+        </div>
+        <div class="form-card">
+          <div class="form-card-title">Status flags — select at least one</div>
+          <div class="check-row" id="cr-out-priority" onclick="toggleCheck('out-priority','cr-out-priority','var(--danger-border)','var(--danger-bg)')">
+            <input type="checkbox" id="out-priority">
+            <span class="check-label" style="color:var(--danger)">Priority</span>
+            <span class="check-sub">Rush shipment</span>
+          </div>
+          <div class="check-row" id="cr-out-ready" onclick="toggleCheck('out-ready','cr-out-ready','var(--success-border)','var(--success-bg)')">
+            <input type="checkbox" id="out-ready">
+            <span class="check-label" style="color:var(--success)">Ready for pickup</span>
+            <span class="check-sub">Staged and ready</span>
+          </div>
+          <div class="check-row" id="cr-out-od" onclick="toggleCheck('out-od','cr-out-od','var(--orange-border)','var(--orange-bg)')">
+            <input type="checkbox" id="out-od">
+            <span class="check-label" style="color:var(--orange)">Over-dimension</span>
+            <span class="check-sub">Exceeds standard dims</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── BOL CENTER ── -->
+    <div id="page-bols" class="page">
+      <div class="topbar">
+        <div class="topbar-title">BOL Upload Center</div>
+        <div class="topbar-actions">
+          <button class="btn" onclick="downloadAllBols()">Download All (ZIP)</button>
+          <button class="btn success" onclick="archiveBolFiles()">Archive to Monthly Folders</button>
+        </div>
+      </div>
+      <div class="page-scroll" style="max-width:800px">
+        <div class="upload-zone" id="bol-drop-zone" onclick="if(event.target.tagName!=='BUTTON')document.getElementById('bol-file-input').click()">
+          <div class="upload-zone-icon">↑</div>
+          <div class="upload-zone-title">Drop BOL PDFs here</div>
+          <div class="upload-zone-sub">or <span>browse files</span> to upload</div>
+          <input type="file" id="bol-file-input" multiple accept=".pdf" style="display:none" onchange="handleBolFileSelect()">
+          <div id="staged-files-list" style="display:none;margin-top:12px;text-align:left;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:10px;font-size:12px;color:var(--text2)"></div>
+          <button id="bol-upload-btn" class="btn primary" style="display:none;margin-top:12px" onclick="triggerBolUpload(event)">Start Upload</button>
+        </div>
+        <div class="section-header">
+          <div class="section-title" id="bol-files-title">Waiting to Download</div>
+        </div>
+        <div id="bol-files-list"><div class="loading">Loading BOL files...</div></div>
+      </div>
+    </div>
+
+    <!-- ── GUN POWDER ── -->
+    <div id="page-gunpowder" class="page">
+      <div class="topbar">
+        <div class="topbar-title">Gun Powder Manager</div>
+        <div class="topbar-actions">
+          <button class="btn primary" onclick="openGunPowderModal()">+ Create Pod</button>
+        </div>
+      </div>
+      <div class="page-scroll">
+        <div style="overflow-x:auto">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Hazmat ID</th>
+                <th>Store</th>
+                <th>Weight</th>
+                <th>Cases</th>
+                <th>Status</th>
+                <th>Assigned Pallet</th>
+                <th style="text-align:center">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="gunpowder-tbody"><tr><td colspan="8" class="loading">Loading...</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── ARCHIVE SEARCH ── -->
+    <div id="page-archive" class="page">
+      <div class="topbar">
+        <div class="topbar-title">Archive Search</div>
+        <div class="topbar-actions">
+          <button class="btn" onclick="clearArchiveSearch()">Clear</button>
+          <button class="btn primary" onclick="runArchiveSearch()">Search</button>
+        </div>
+      </div>
+      <div class="page-scroll">
+        <div class="form-card" style="margin-bottom:20px">
+          <div class="form-grid">
+            <div class="form-group">
+              <label class="form-label">Store</label>
+              <select class="form-input" id="arch-store"><option value="">All Stores</option></select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Pallet ID</label>
+              <input class="form-input" id="arch-pallet" type="text" placeholder="ACC123456">
+            </div>
+            <div class="form-group">
+              <label class="form-label">BOL #</label>
+              <input class="form-input" id="arch-bol" type="text" placeholder="BOL123">
+            </div>
+            <div class="form-group">
+              <label class="form-label">BOL Entry Date</label>
+              <input class="form-input" id="arch-bol-date" type="date">
+            </div>
+            <div class="form-group full">
+              <label class="form-label">Notes (partial match)</label>
+              <input class="form-input" id="arch-notes" type="text" placeholder="Search in notes...">
+            </div>
+          </div>
+        </div>
+        <div id="archive-results-wrap" style="display:none">
+          <div class="section-header">
+            <div class="section-title">Results</div>
+            <span id="archive-result-count" style="font-size:12px;color:var(--text3)"></span>
+          </div>
+          <div style="overflow-x:auto">
+            <table class="data-table">
+              <thead>
+                <tr><th>Entry Date</th><th>Store</th><th>Pallet ID</th><th>Dims</th><th>Weight</th><th>Notes</th><th>BOL #</th><th>BOL Date</th><th>Hazmat ID</th></tr>
+              </thead>
+              <tbody id="archive-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+        <div id="archive-no-results" style="display:none" class="empty">No results found — try adjusting your filters</div>
+      </div>
+    </div>
+
+    <!-- ── BUG REPORT ── -->
+    <div id="page-bugs" class="page">
+      <div class="topbar">
+        <div class="topbar-title">Bug & Change Report</div>
+        <div class="topbar-actions">
+          <button class="btn primary" onclick="submitBugReport()">Submit Report</button>
+        </div>
+      </div>
+      <div class="page-scroll" style="max-width:640px">
+        <div class="form-card">
+          <div class="form-grid">
+            <div class="form-group">
+              <label class="form-label">Your Name</label>
+              <input class="form-input" id="bug-name" type="text" placeholder="Your name">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Date</label>
+              <input class="form-input" id="bug-date" type="date">
+            </div>
+            <div class="form-group full">
+              <label class="form-label">Suggestions or Bug Report</label>
+              <textarea class="form-input" id="bug-report" rows="8" maxlength="1500" style="resize:vertical" oninput="updateBugCount(this)" placeholder="Describe the issue or suggestion in detail..."></textarea>
+              <div style="text-align:right;font-size:11px;color:var(--text3);margin-top:4px"><span id="bug-char-count">0</span> / 1500</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- end main -->
+</div><!-- end shell -->
+
+<!-- ══════════════ MODALS ══════════════ -->
+
+<!-- Edit Pallet Modal -->
+<div class="modal-overlay" id="edit-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">Edit Pallet</div>
+      <button class="modal-close" onclick="closeModal('edit-modal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="edit-doc-id">
+      <div class="form-grid">
+        <div class="form-group">
+          <label class="form-label">Store</label>
+          <select class="form-input" id="edit-store"></select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Pallet ID</label>
+          <input class="form-input" id="edit-pallet-num" readonly style="background:var(--surface2)">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Weight (lbs)</label>
+          <input class="form-input" id="edit-weight" type="number">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Dimensions (L × W × H)</label>
+          <div class="dims-wrap">
+            <input class="form-input" id="edit-length" type="number" style="text-align:center">
+            <span class="dims-sep">×</span>
+            <input class="form-input" id="edit-width" type="number" style="text-align:center">
+            <span class="dims-sep">×</span>
+            <input class="form-input" id="edit-height" type="number" style="text-align:center">
+          </div>
+        </div>
+        <div class="form-group full">
+          <label class="form-label">Notes</label>
+          <input class="form-input" id="edit-notes" type="text">
+        </div>
+      </div>
+      <hr class="divider">
+      <div class="check-row" id="cr-edit-priority" onclick="toggleCheck('edit-priority','cr-edit-priority','var(--danger-border)','var(--danger-bg)')">
+        <input type="checkbox" id="edit-priority">
+        <span class="check-label" style="color:var(--danger)">Priority</span>
+      </div>
+      <div class="check-row" id="cr-edit-ready" onclick="toggleCheck('edit-ready','cr-edit-ready','var(--success-border)','var(--success-bg)')">
+        <input type="checkbox" id="edit-ready">
+        <span class="check-label" style="color:var(--success)">Ready for pickup</span>
+      </div>
+      <div class="check-row" id="cr-edit-od" onclick="toggleCheck('edit-od','cr-edit-od','var(--orange-border)','var(--orange-bg)')">
+        <input type="checkbox" id="edit-od">
+        <span class="check-label" style="color:var(--orange)">Over-dimension</span>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeModal('edit-modal')">Cancel</button>
+      <button class="btn success" onclick="saveEditPallet()">Save Changes</button>
+    </div>
+  </div>
+</div>
+
+<!-- Gun Powder Create Modal -->
+<div class="modal-overlay" id="gunpowder-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">Create Gun Powder Pod</div>
+      <button class="modal-close" onclick="closeModal('gunpowder-modal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-grid">
+        <div class="form-group full">
+          <label class="form-label">Store</label>
+          <select class="form-input" id="gp-store"></select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Weight (lbs)</label>
+          <input class="form-input" id="gp-weight" type="number" placeholder="150">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Cases</label>
+          <input class="form-input" id="gp-cases" type="number" placeholder="10" min="1">
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeModal('gunpowder-modal')">Cancel</button>
+      <button class="btn warn" onclick="submitGunPowderPod()">Create Pod</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════ FIREBASE + APP LOGIC ══════════════ -->
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-app.js";
+  import {
+    getFirestore, collection, doc, addDoc, getDoc, getDocs,
+    updateDoc, deleteDoc, query, where, orderBy, serverTimestamp, writeBatch
+  } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-firestore.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyBBsaTE3CamyRCA6xjZ1jk6TOQKL3zb5bc",
+    authDomain: "ffc-pallet-portal.firebaseapp.com",
+    projectId: "ffc-pallet-portal",
+    storageBucket: "ffc-pallet-portal.firebasestorage.app",
+    messagingSenderId: "326714077400",
+    appId: "1:326714077400:web:41eb9c5f6eec08e5e467ad"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
+
+  // ── Collections
+  const PALLETS = 'pallets';
+  const ARCHIVE = 'archive';
+  const HAZMAT  = 'hazmat';
+  const STORES  = 'stores';
+  const BUGS    = 'bugReports';
+
+  // ── State
+  let allPallets = [];
+  let allStores  = [];
+  let allHazmat  = [];
+  let currentDetailStore = null;
+  let stagedBolFiles = [];
+  let dashFilter = 'all';
+
+  // ════════════════════════════════
+  // NAVIGATION
+  // ════════════════════════════════
+  window.showPage = function(id) {
+    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+    document.getElementById('page-' + id).classList.add('active');
+    document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+    const map = { dashboard:0, entry:1, outbound:2, gunpowder:3, bols:4, archive:5, bugs:6 };
+    const items = document.querySelectorAll('.nav-item');
+    if (map[id] !== undefined) items[map[id]].classList.add('active');
+
+    if (id === 'dashboard') loadDashboard();
+    if (id === 'gunpowder') loadGunPowder();
+    if (id === 'bols') loadBolFiles();
+    if (id === 'entry' || id === 'outbound') populateStoreSelects();
+    if (id === 'archive') populateArchiveStores();
+    if (id === 'bugs') { document.getElementById('bug-date').value = new Date().toISOString().split('T')[0]; }
+  };
+
+  // ════════════════════════════════
+  // STORES
+  // ════════════════════════════════
+  async function loadStores() {
+    const snap = await getDocs(collection(db, STORES));
+    allStores = snap.docs.map(d => d.data().name).filter(Boolean).sort();
+    if (!allStores.length) {
+      // Seed default stores if empty
+      const defaults = [
+        'Bismarck/101','Fargo/102','Sioux Falls/103','Rapid City/104',
+        'Omaha/105','Lincoln/106','Grand Forks/107','Minot/108',
+        'Aberdeen/109','Spee-Dee/110','FFC/114','IP/116','Sidney/118'
+      ];
+      const batch = writeBatch(db);
+      defaults.forEach(name => batch.set(doc(collection(db, STORES)), { name }));
+      await batch.commit();
+      allStores = defaults;
+    }
+  }
+
+  function populateStoreSelects() {
+    ['entry-store','edit-store','gp-store'].forEach(id => {
+      const sel = document.getElementById(id);
+      if (!sel) return;
+      const cur = sel.value;
+      sel.innerHTML = '<option value="">Select store...</option>';
+      allStores.forEach(s => { const o = document.createElement('option'); o.value = o.textContent = s; sel.appendChild(o); });
+      if (cur) sel.value = cur;
+    });
+  }
+
+  function populateArchiveStores() {
+    const sel = document.getElementById('arch-store');
+    sel.innerHTML = '<option value="">All Stores</option>';
+    allStores.forEach(s => { const o = document.createElement('option'); o.value = o.textContent = s; sel.appendChild(o); });
+  }
+
+  // ════════════════════════════════
+  // DASHBOARD
+  // ════════════════════════════════
+  window.loadDashboard = async function() {
+    document.getElementById('dashboard-table-wrap').innerHTML = '<div class="loading">Loading pallets...</div>';
+    try {
+      const snap = await getDocs(query(collection(db, PALLETS), orderBy('createdAt', 'desc')));
+      allPallets = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      renderDashboard();
+    } catch(e) {
+      document.getElementById('dashboard-table-wrap').innerHTML = `<div class="empty" style="color:var(--danger)">Error loading data: ${e.message}</div>`;
+    }
+  };
+
+  function renderDashboard() {
+    const pallets = allPallets;
+    const storePallets = {};
+    pallets.forEach(p => {
+      const s = p.store || 'Unknown';
+      if (!storePallets[s]) storePallets[s] = [];
+      storePallets[s].push(p);
+    });
+
+    // Stats
+    const storeList = Object.keys(storePallets).filter(s => storePallets[s].some(p => p.type !== 'other'));
+    const totalWeight = pallets.reduce((sum, p) => sum + (Number(p.weight) || 0), 0);
+    const bolCount = pallets.filter(p => p.bol && p.bol.trim()).length;
+    const bolStores = storeList.filter(s => storePallets[s].some(p => p.bol && p.bol.trim())).length;
+    const alertCount = storeList.filter(s => storePallets[s].some(p => p.priority || p.overDim)).length;
+
+    document.getElementById('stat-stores').textContent = storeList.length;
+    document.getElementById('stat-stores-sub').innerHTML = `<span class="stat-dot" style="background:var(--accent)"></span>${alertCount} with alerts`;
+    document.getElementById('stat-pallets').textContent = pallets.length;
+    document.getElementById('stat-pallets-sub').innerHTML = `<span class="stat-dot" style="background:var(--success)"></span>${pallets.filter(p=>p.ready).length} ready to ship`;
+    document.getElementById('stat-bols').textContent = bolCount;
+    document.getElementById('stat-bols-sub').innerHTML = `<span class="stat-dot" style="background:var(--success)"></span>across ${bolStores} stores`;
+    document.getElementById('stat-weight').textContent = totalWeight >= 1000 ? (totalWeight/1000).toFixed(1)+'k' : totalWeight.toLocaleString();
+
+    // BOL banner
+    const bolBtn = document.getElementById('bol-banner-btn');
+    // This is handled separately by checkBolFiles()
+
+    // Build table
+    const bottomStores = ['Spee-Dee/110','FFC/114','IP/116','Sidney/118'];
+    const regularStores = allStores.filter(s => !bottomStores.includes(s) && storePallets[s]);
+    const bottomFiltered = bottomStores.filter(s => storePallets[s]);
+    const orderedStores = [...regularStores, ...bottomFiltered];
+    const outboundDests = [...new Set(pallets.filter(p => p.type === 'other').map(p => p.store))].sort();
+
+    let rows = '';
+
+    // Non-store section
+    if (outboundDests.length) {
+      rows += `<tr><td colspan="6" style="background:var(--purple-bg);color:var(--purple);font-size:11px;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;padding:8px 14px;border-bottom:1px solid var(--purple-border)">Non-Store Pallets</td></tr>`;
+      outboundDests.forEach(dest => {
+        const dp = storePallets[dest] || [];
+        const bc = dp.filter(p => p.bol && p.bol.trim()).length;
+        const hasAlerts = dp.some(p => p.priority || p.overDim);
+        const hasBol = bc > 0;
+        if (dashFilter === 'alerts' && !hasAlerts) return;
+        if (dashFilter === 'bol' && !hasBol) return;
+        const weight = dp.reduce((s,p) => s+(Number(p.weight)||0), 0);
+        const alerts = buildAlertBadges(dp, bc);
+        rows += `<tr class="clickable${hasBol?' row-bol':''}" onclick="openDetail('${dest}')">
+          <td><div class="store-name">${dest}</div></td>
+          <td><div class="badge-alerts">${alerts}</div></td>
+          <td class="mono">${dp.length}</td>
+          <td class="mono">${weight.toLocaleString()} lbs</td>
+          <td>—</td>
+          <td style="text-align:right;color:var(--${hasBol?'success':'text3'});font-size:12px;font-weight:500">View →</td>
+        </tr>`;
+      });
+    }
+
+    // Store section
+    if (orderedStores.length) {
+      rows += `<tr><td colspan="6" style="background:var(--success-bg);color:var(--success);font-size:11px;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;padding:8px 14px;border-bottom:1px solid var(--success-border)">Store Pallets</td></tr>`;
+    }
+
+    // Also show all stores even with 0 pallets
+    const allStoreRows = allStores.filter(s => !bottomStores.includes(s));
+    const allBottom = bottomStores;
+    const combined = [...allStoreRows, ...allBottom];
+
+    combined.forEach(storeName => {
+      const sp = storePallets[storeName] || [];
+      const bc = sp.filter(p => p.bol && p.bol.trim()).length;
+      const hasAlerts = sp.some(p => p.priority || p.overDim);
+      const hasBol = bc > 0;
+      if (dashFilter === 'alerts' && !hasAlerts) return;
+      if (dashFilter === 'bol' && !hasBol) return;
+      const weight = sp.reduce((s,p) => s+(Number(p.weight)||0), 0);
+      const alerts = buildAlertBadges(sp, bc);
+      const lastRouted = getLastRouted(sp);
+      const isBottom = bottomStores.includes(storeName);
+      rows += `<tr class="clickable${hasBol?' row-bol':''}" onclick="${sp.length?`openDetail('${storeName}')`:'void(0)'}" style="${sp.length?'':'opacity:0.55;cursor:default'}${isBottom?';border-top:2px solid var(--border2)':''}">
+        <td><div class="store-name">${storeName}</div></td>
+        <td><div class="badge-alerts">${alerts || '<span class="badge neutral">—</span>'}</div></td>
+        <td class="mono">${sp.length || '<span style="color:var(--text3)">0</span>'}</td>
+        <td class="mono">${weight>0?weight.toLocaleString()+' lbs':'<span style="color:var(--text3)">0 lbs</span>'}</td>
+        <td>${lastRouted ? `<span class="date-chip">${lastRouted}</span>` : '<span class="date-none">—</span>'}</td>
+        <td style="text-align:right;color:var(--${hasBol?'success':'text3'});font-size:12px;font-weight:500">${sp.length?'View →':''}</td>
+      </tr>`;
+    });
+
+    if (!rows) rows = '<tr><td colspan="6" class="empty">No pallets match this filter</td></tr>';
+
+    document.getElementById('dashboard-table-wrap').innerHTML = `
+      <table class="data-table">
+        <thead><tr>
+          <th>Store</th><th>Alerts</th><th>Pallets</th><th>Weight</th><th>Last Routed</th><th></th>
+        </tr></thead>
+        <tbody>${rows}</tbody>
+      </table>`;
+  }
+
+  function buildAlertBadges(pallets, bolCount) {
+    let badges = '';
+    if (bolCount > 0) badges += `<span class="badge bol-attached">BOL Attached <span class="bol-count">${bolCount}</span></span>`;
+    if (pallets.some(p => p.priority)) badges += `<span class="badge priority">Priority</span>`;
+    if (pallets.some(p => p.overDim)) badges += `<span class="badge od">OD</span>`;
+    if (pallets.some(p => p.optPrimers || p.optLithium || p.optAlkaline)) badges += `<span class="badge hazmat">Opt. Hazmat</span>`;
+    if (pallets.some(p => p.hazmatId && p.hazmatId.trim())) badges += `<span class="badge gunpowder">Gun Powder</span>`;
+    if (pallets.some(p => p.ready)) badges += `<span class="badge ready">Ready</span>`;
+    return badges;
+  }
+
+  function getLastRouted(pallets) {
+    const withBol = pallets.filter(p => p.bol && p.bolDate);
+    if (!withBol.length) return null;
+    const latest = withBol.sort((a,b) => (b.bolDate?.seconds||0) - (a.bolDate?.seconds||0))[0];
+    if (!latest.bolDate) return null;
+    return new Date(latest.bolDate.seconds * 1000).toLocaleDateString();
+  }
+
+  window.setDashTab = function(el, filter) {
+    document.querySelectorAll('.tabs .tab').forEach(t => t.classList.remove('active'));
+    el.classList.add('active');
+    dashFilter = filter;
+    renderDashboard();
+  };
+
+  // ════════════════════════════════
+  // DETAIL VIEW
+  // ════════════════════════════════
+  window.openDetail = function(storeName) {
+    currentDetailStore = storeName;
+    document.getElementById('detail-title').textContent = storeName + ' — Pallet Details';
+    renderDetailTable();
+    showPage('detail');
+  };
+
+  function renderDetailTable() {
+    const pallets = allPallets.filter(p => p.store === currentDetailStore);
+    const tbody = document.getElementById('detail-tbody');
+    if (!pallets.length) { tbody.innerHTML = '<tr><td colspan="11" class="empty">No pallets for this store</td></tr>'; return; }
+
+    tbody.innerHTML = pallets.map(p => {
+      const bolVal = (p.bol && p.bol !== 'undefined') ? p.bol : '';
+      const hazVal = p.hazmatId || '';
+      let statusBadges = '';
+      if (p.priority) statusBadges += '<span class="badge priority">Priority</span> ';
+      if (p.ready) statusBadges += '<span class="badge ready">Ready</span> ';
+      if (p.overDim) statusBadges += '<span class="badge od">OD</span> ';
+      let optParts = [];
+      if (p.optPrimers) optParts.push(`Primers (${p.optPrimers})`);
+      if (p.optLithium) optParts.push(`Lithium (${p.optLithium})`);
+      if (p.optAlkaline) optParts.push(`Alkaline (${p.optAlkaline})`);
+      const optHtml = optParts.length ? `<div style="background:var(--warn-bg);padding:4px 8px;border-radius:4px;font-size:11px;border-left:3px solid var(--warn);color:var(--warn)">${optParts.join('<br>')}</div>` : '<span class="text-muted">—</span>';
+      const dateStr = p.createdAt ? new Date(p.createdAt.seconds*1000).toLocaleDateString() : '—';
+      return `<tr>
+        <td><input type="checkbox" class="ship-cb" data-id="${p.id}" style="accent-color:var(--accent);width:15px;height:15px"></td>
+        <td class="mono">${dateStr}</td>
+        <td class="mono">${p.palletNumber || '—'}</td>
+        <td><div class="badge-alerts">${statusBadges || '<span class="badge neutral">—</span>'}</div></td>
+        <td class="mono">${p.length||'?'}×${p.width||'?'}×${p.height||'?'}</td>
+        <td class="mono">${Number(p.weight||0).toLocaleString()} lbs</td>
+        <td style="max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--text2)">${p.notes||'—'}</td>
+        <td>${optHtml}</td>
+        <td><input class="tbl-input bol-input" data-id="${p.id}" value="${bolVal}" placeholder="BOL-XXXXX"></td>
+        <td>
+          <div style="display:flex;gap:4px;align-items:center">
+            <input class="tbl-input hazmat-input" data-id="${p.id}" value="${hazVal}" placeholder="HAZ-XXXXX">
+            ${hazVal ? `<button class="btn danger sm" onclick="removeHazmat('${p.id}','${hazVal}')">✕</button>` : ''}
+          </div>
+        </td>
+        <td>
+          <div style="display:flex;gap:4px">
+            <button class="btn sm" onclick="openEditModal('${p.id}')">Edit</button>
+            <button class="btn danger sm" onclick="deletePallet('${p.id}')">Del</button>
+          </div>
+        </td>
+      </tr>`;
+    }).join('');
+  }
+
+  window.toggleSelectAll = function(cb) {
+    document.querySelectorAll('.ship-cb').forEach(c => c.checked = cb.checked);
+  };
+
+  window.saveAllBols = async function() {
+    const inputs = document.querySelectorAll('.bol-input');
+    if (!inputs.length) return;
+    Swal.fire({ title: 'Saving BOLs...', didOpen: () => Swal.showLoading() });
+    const batch = writeBatch(db);
+    inputs.forEach(input => {
+      const val = input.value.trim();
+      const ref = doc(db, PALLETS, input.dataset.id);
+      if (val) batch.update(ref, { bol: val, bolDate: serverTimestamp() });
+    });
+    await batch.commit();
+    // Update local state
+    inputs.forEach(input => {
+      const val = input.value.trim();
+      const p = allPallets.find(x => x.id === input.dataset.id);
+      if (p && val) { p.bol = val; }
+    });
+    Swal.fire({ title: 'Saved!', icon: 'success', timer: 1500, showConfirmButton: false });
+  };
+
+  window.saveAllHazmat = async function() {
+    const inputs = document.querySelectorAll('.hazmat-input');
+    const updates = Array.from(inputs).filter(i => i.value.trim());
+    if (!updates.length) { Swal.fire('No Data', 'No Hazmat IDs to save.', 'info'); return; }
+    Swal.fire({ title: 'Validating...', didOpen: () => Swal.showLoading() });
+    const errors = [];
+    let successCount = 0;
+    for (const input of updates) {
+      const hazmatId = input.value.trim();
+      const palletId = input.dataset.id;
+      const pallet = allPallets.find(p => p.id === palletId);
+      const hazmat = allHazmat.find(h => h.hazmatId === hazmatId);
+      if (!hazmat) { errors.push(`<strong>${hazmatId}</strong> — not found in system`); continue; }
+      if (hazmat.store !== pallet?.store) { errors.push(`<strong>${hazmatId}</strong> — store mismatch (pod: ${hazmat.store}, pallet: ${pallet?.store})`); continue; }
+      const batch = writeBatch(db);
+      batch.update(doc(db, PALLETS, palletId), { hazmatId });
+      batch.update(doc(db, HAZMAT, hazmat.id), { status: 'Assigned', assignedPallet: pallet.palletNumber });
+      await batch.commit();
+      const p = allPallets.find(x => x.id === palletId);
+      if (p) p.hazmatId = hazmatId;
+      successCount++;
+    }
+    if (errors.length) {
+      Swal.fire({ title: 'Partial Save', html: `${successCount} saved, ${errors.length} failed:<br><br><ul style="text-align:left">${errors.map(e=>`<li>${e}</li>`).join('')}</ul>`, icon: 'warning' });
+    } else {
+      Swal.fire({ title: 'Saved!', html: `${successCount} Hazmat IDs assigned.`, icon: 'success', timer: 1500, showConfirmButton: false });
+    }
+  };
+
+  window.processShipped = async function() {
+    const checked = document.querySelectorAll('.ship-cb:checked');
+    if (!checked.length) { Swal.fire('Nothing selected', 'Check the boxes next to pallets you want to ship.', 'info'); return; }
+    const ids = Array.from(checked).map(c => c.dataset.id);
+    const result = await Swal.fire({ title: `Ship ${ids.length} pallet${ids.length>1?'s':''}?`, text: 'They will be moved to the archive.', icon: 'question', showCancelButton: true, confirmButtonColor: 'var(--success)', confirmButtonText: 'Yes, ship them!' });
+    if (!result.isConfirmed) return;
+    Swal.fire({ title: 'Processing...', didOpen: () => Swal.showLoading() });
+    const batch = writeBatch(db);
+    for (const id of ids) {
+      const pallet = allPallets.find(p => p.id === id);
+      if (pallet) {
+        batch.set(doc(collection(db, ARCHIVE)), { ...pallet, shippedAt: serverTimestamp() });
+        batch.delete(doc(db, PALLETS, id));
+      }
+    }
+    await batch.commit();
+    allPallets = allPallets.filter(p => !ids.includes(p.id));
+    renderDetailTable();
+    Swal.fire({ title: 'Shipped!', html: `${ids.length} pallet${ids.length>1?'s':''} archived.`, icon: 'success', timer: 1800, showConfirmButton: false });
+    setTimeout(loadDashboard, 2000);
+  };
+
+  window.deletePallet = async function(id) {
+    const result = await Swal.fire({ title: 'Delete pallet?', text: 'This cannot be undone.', icon: 'warning', showCancelButton: true, confirmButtonColor: 'var(--danger)', confirmButtonText: 'Delete' });
+    if (!result.isConfirmed) return;
+    await deleteDoc(doc(db, PALLETS, id));
+    allPallets = allPallets.filter(p => p.id !== id);
+    renderDetailTable();
+    Swal.fire({ title: 'Deleted', icon: 'success', timer: 1200, showConfirmButton: false });
+  };
+
+  window.removeHazmat = async function(palletId, hazmatId) {
+    const result = await Swal.fire({ title: 'Remove Hazmat ID?', html: `Unlink <strong>${hazmatId}</strong> from this pallet?`, icon: 'warning', showCancelButton: true, confirmButtonColor: 'var(--danger)', confirmButtonText: 'Remove' });
+    if (!result.isConfirmed) return;
+    const batch = writeBatch(db);
+    batch.update(doc(db, PALLETS, palletId), { hazmatId: '' });
+    const hazmat = allHazmat.find(h => h.hazmatId === hazmatId);
+    if (hazmat) batch.update(doc(db, HAZMAT, hazmat.id), { status: 'Unassigned', assignedPallet: '' });
+    await batch.commit();
+    const p = allPallets.find(x => x.id === palletId);
+    if (p) p.hazmatId = '';
+    renderDetailTable();
+    Swal.fire({ title: 'Removed!', icon: 'success', timer: 1200, showConfirmButton: false });
+  };
+
+  // ════════════════════════════════
+  // EDIT PALLET MODAL
+  // ════════════════════════════════
+  window.openEditModal = function(id) {
+    const p = allPallets.find(x => x.id === id);
+    if (!p) return;
+    document.getElementById('edit-doc-id').value = id;
+    document.getElementById('edit-pallet-num').value = p.palletNumber || '';
+    document.getElementById('edit-weight').value = p.weight || '';
+    document.getElementById('edit-length').value = p.length || 48;
+    document.getElementById('edit-width').value = p.width || 40;
+    document.getElementById('edit-height').value = p.height || 60;
+    document.getElementById('edit-notes').value = p.notes || '';
+    populateStoreSelects();
+    document.getElementById('edit-store').value = p.store || '';
+    setCheckState('edit-priority', 'cr-edit-priority', p.priority, 'var(--danger-border)', 'var(--danger-bg)');
+    setCheckState('edit-ready', 'cr-edit-ready', p.ready, 'var(--success-border)', 'var(--success-bg)');
+    setCheckState('edit-od', 'cr-edit-od', p.overDim, 'var(--orange-border)', 'var(--orange-bg)');
+    openModal('edit-modal');
+  };
+
+  window.saveEditPallet = async function() {
+    const id = document.getElementById('edit-doc-id').value;
+    const updates = {
+      store: document.getElementById('edit-store').value,
+      weight: document.getElementById('edit-weight').value,
+      length: document.getElementById('edit-length').value,
+      width: document.getElementById('edit-width').value,
+      height: document.getElementById('edit-height').value,
+      notes: document.getElementById('edit-notes').value,
+      priority: document.getElementById('edit-priority').checked,
+      ready: document.getElementById('edit-ready').checked,
+      overDim: document.getElementById('edit-od').checked,
+    };
+    Swal.fire({ title: 'Saving...', didOpen: () => Swal.showLoading() });
+    await updateDoc(doc(db, PALLETS, id), updates);
+    Object.assign(allPallets.find(p => p.id === id) || {}, updates);
+    closeModal('edit-modal');
+    renderDetailTable();
+    Swal.fire({ title: 'Updated!', icon: 'success', timer: 1200, showConfirmButton: false });
+  };
+
+  // ════════════════════════════════
+  // SUBMIT PALLET ENTRY
+  // ════════════════════════════════
+  window.submitPalletEntry = async function() {
+    const store = document.getElementById('entry-store').value;
+    const num = document.getElementById('entry-pallet-num').value.trim();
+    const weight = document.getElementById('entry-weight').value;
+    const notes = document.getElementById('entry-notes').value.trim();
+    const priority = document.getElementById('entry-priority').checked;
+    const ready = document.getElementById('entry-ready').checked;
+    const od = document.getElementById('entry-od').checked;
+
+    if (!store) { Swal.fire('Missing field', 'Please select a store.', 'error'); return; }
+    if (!num.match(/^\d{6}$/)) { Swal.fire('Invalid ID', 'Pallet ID must be exactly 6 digits.', 'error'); return; }
+    if (!weight) { Swal.fire('Missing field', 'Please enter a weight.', 'error'); return; }
+    if (!notes) { Swal.fire('Missing field', 'Notes are required.', 'error'); return; }
+    if (!priority && !ready && !od) { Swal.fire('Missing flag', 'Select at least one status flag.', 'error'); return; }
+
+    const optPrimers = document.getElementById('entry-primers').checked ? document.getElementById('entry-primers-qty').value : '';
+    const optLithium = document.getElementById('entry-lithium').checked ? document.getElementById('entry-lithium-qty').value : '';
+    const optAlkaline = document.getElementById('entry-alkaline').checked ? document.getElementById('entry-alkaline-qty').value : '';
+
+    Swal.fire({ title: 'Saving...', didOpen: () => Swal.showLoading() });
+    await addDoc(collection(db, PALLETS), {
+      store, palletNumber: 'ACC' + num,
+      weight: Number(weight),
+      length: Number(document.getElementById('entry-length').value),
+      width: Number(document.getElementById('entry-width').value),
+      height: Number(document.getElementById('entry-height').value),
+      notes, priority, ready, overDim: od,
+      optPrimers, optLithium, optAlkaline,
+      bol: '', bolDate: null, hazmatId: '',
+      type: 'store', createdAt: serverTimestamp()
+    });
+
+    // Reset form
+    ['entry-store','entry-pallet-num','entry-weight','entry-notes'].forEach(id => document.getElementById(id).value = '');
+    ['entry-priority','entry-ready','entry-od','entry-primers','entry-lithium','entry-alkaline'].forEach(id => { document.getElementById(id).checked = false; });
+    ['entry-primers-qty','entry-lithium-qty','entry-alkaline-qty'].forEach(id => { const el = document.getElementById(id); el.value=''; el.disabled=true; });
+    ['cr-priority','cr-ready','cr-od','hr-primers','hr-lithium','hr-alkaline'].forEach(id => { const el = document.getElementById(id); if(el){ el.style.borderColor=''; el.style.background=''; }});
+    document.getElementById('hr-lithium').classList.add('inactive');
+    document.getElementById('hr-alkaline').classList.add('inactive');
+
+    Swal.fire({ title: 'Saved!', text: 'Pallet entry saved successfully.', icon: 'success', timer: 2000, showConfirmButton: false });
+    loadDashboard();
+  };
+
+  // ════════════════════════════════
+  // SUBMIT OUTBOUND ENTRY
+  // ════════════════════════════════
+  window.submitOutboundEntry = async function() {
+    const dest = document.getElementById('out-dest').value.trim();
+    const street = document.getElementById('out-street').value.trim();
+    const city = document.getElementById('out-city').value.trim();
+    const state = document.getElementById('out-state').value;
+    const zip = document.getElementById('out-zip').value.trim();
+    const weight = document.getElementById('out-weight').value;
+    const notes = document.getElementById('out-notes').value.trim();
+    const priority = document.getElementById('out-priority').checked;
+    const ready = document.getElementById('out-ready').checked;
+    const od = document.getElementById('out-od').checked;
+
+    if (!dest||!street||!city||!state||!zip||!weight||!notes) { Swal.fire('Missing fields', 'Please fill in all required fields.', 'error'); return; }
+    if (!priority && !ready && !od) { Swal.fire('Missing flag', 'Select at least one status flag.', 'error'); return; }
+
+    Swal.fire({ title: 'Saving...', didOpen: () => Swal.showLoading() });
+    await addDoc(collection(db, PALLETS), {
+      store: dest, palletNumber: 'OUTBOUND-' + Date.now(),
+      weight: Number(weight),
+      length: Number(document.getElementById('out-length').value),
+      width: Number(document.getElementById('out-width').value),
+      height: Number(document.getElementById('out-height').value),
+      notes: `${dest} | ${street}, ${city}, ${state} ${zip} | ${notes}`,
+      priority, ready, overDim: od,
+      bol: '', bolDate: null, hazmatId: '',
+      type: 'other', createdAt: serverTimestamp(),
+      address: { street, city, state, zip }
+    });
+    document.getElementById('outboundForm') && document.getElementById('outboundForm').reset();
+    Swal.fire({ title: 'Saved!', icon: 'success', timer: 2000, showConfirmButton: false });
+    loadDashboard();
+  };
+
+  // ════════════════════════════════
+  // GUN POWDER
+  // ════════════════════════════════
+  window.loadGunPowder = async function() {
+    const tbody = document.getElementById('gunpowder-tbody');
+    tbody.innerHTML = '<tr><td colspan="8" class="loading">Loading...</td></tr>';
+    const snap = await getDocs(query(collection(db, HAZMAT), orderBy('createdAt','desc')));
+    allHazmat = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    const navCount = document.getElementById('nav-hazmat-count');
+    navCount.textContent = allHazmat.length;
+    navCount.style.display = allHazmat.length ? 'inline-block' : 'none';
+    populateStoreSelects();
+
+    if (!allHazmat.length) { tbody.innerHTML = '<tr><td colspan="8" class="empty">No active Gun Powder Pods</td></tr>'; return; }
+    tbody.innerHTML = allHazmat.map(h => {
+      const sc = h.status === 'Assigned' ? 'success' : 'hazmat';
+      const dateStr = h.createdAt ? new Date(h.createdAt.seconds*1000).toLocaleDateString() : '—';
+      return `<tr>
+        <td class="mono">${dateStr}</td>
+        <td class="mono" style="color:var(--warn);font-weight:500">${h.hazmatId}</td>
+        <td>${h.store}</td>
+        <td class="mono">${h.quantity} lbs</td>
+        <td class="mono">${h.cases || '—'}</td>
+        <td><span class="badge ${sc}">${h.status}</span></td>
+        <td class="mono">${h.assignedPallet || '<span class="text-muted">—</span>'}</td>
+        <td>
+          <div style="display:flex;gap:6px;justify-content:center;flex-wrap:wrap">
+            <button class="btn sm" onclick="copyText('${h.hazmatId}', this)">Copy</button>
+            <button class="btn sm" onclick="printHazmatLabel('${h.hazmatId}','${h.store}','${h.quantity}','${dateStr}')">Print</button>
+            <button class="btn danger sm" onclick="archiveHazmat('${h.id}','${h.hazmatId}')">Archive</button>
+          </div>
+        </td>
+      </tr>`;
+    }).join('');
+  };
+
+  window.openGunPowderModal = function() { populateStoreSelects(); openModal('gunpowder-modal'); };
+
+  window.submitGunPowderPod = async function() {
+    const store = document.getElementById('gp-store').value;
+    const weight = document.getElementById('gp-weight').value;
+    const cases = document.getElementById('gp-cases').value;
+    if (!store || !weight || !cases) { Swal.fire('Missing fields', 'Please fill in all fields.', 'error'); return; }
+    const hazmatId = generateHazmatId();
+    Swal.fire({ title: 'Creating pod...', didOpen: () => Swal.showLoading() });
+    await addDoc(collection(db, HAZMAT), { hazmatId, store, quantity: Number(weight), cases: Number(cases), type: 'Gun Powder', status: 'Unassigned', assignedPallet: '', createdAt: serverTimestamp() });
+    closeModal('gunpowder-modal');
+    document.getElementById('gp-store').value = '';
+    document.getElementById('gp-weight').value = '';
+    document.getElementById('gp-cases').value = '';
+    Swal.fire({ title: 'Pod Created!', html: `Hazmat ID: <strong style="font-family:'DM Mono',monospace;font-size:1.2rem">${hazmatId}</strong>`, icon: 'success', confirmButtonText: 'OK' });
+    loadGunPowder();
+  };
+
+  window.archiveHazmat = async function(id, hazmatId) {
+    const result = await Swal.fire({ title: 'Archive pod?', html: `Move <strong>${hazmatId}</strong> to archive?`, icon: 'warning', showCancelButton: true, confirmButtonColor: 'var(--danger)', confirmButtonText: 'Archive' });
+    if (!result.isConfirmed) return;
+    const snap = await getDoc(doc(db, HAZMAT, id));
+    await addDoc(collection(db, 'hazmatArchive'), { ...snap.data(), archivedAt: serverTimestamp() });
+    await deleteDoc(doc(db, HAZMAT, id));
+    Swal.fire({ title: 'Archived!', icon: 'success', timer: 1200, showConfirmButton: false });
+    loadGunPowder();
+  };
+
+  window.printHazmatLabel = function(hazmatId, store, qty, date) {
+    Swal.fire({
+      html: `<div style="font-family:'DM Sans',sans-serif;padding:20px;text-align:center;border:2px solid #333;border-radius:8px">
+        <div style="font-size:2rem;margin-bottom:8px">💥</div>
+        <div style="font-size:12px;font-weight:700;color:#dc2626;letter-spacing:0.1em;text-transform:uppercase;margin-bottom:8px">GUN POWDER POD</div>
+        <div style="font-size:1.6rem;font-weight:600;font-family:'DM Mono',monospace;letter-spacing:2px;margin:12px 0">${hazmatId}</div>
+        <div style="font-size:13px;margin:4px 0"><strong>Store:</strong> ${store}</div>
+        <div style="font-size:13px;margin:4px 0"><strong>Weight:</strong> ${qty} lbs</div>
+        <div style="font-size:11px;color:#666;margin-top:12px">${date}</div>
+      </div>`,
+      showConfirmButton: true, confirmButtonText: 'Print', showCancelButton: true, cancelButtonText: 'Close'
+    }).then(r => { if (r.isConfirmed) window.print(); });
+  };
+
+  // ════════════════════════════════
+  // BOL CENTER (Google Drive via Apps Script)
+  // ════════════════════════════════
+  const APPS_SCRIPT_URL = ''; // ← paste your existing Apps Script web app URL here
+
+  window.loadBolFiles = async function() {
+    if (!APPS_SCRIPT_URL) {
+      document.getElementById('bol-files-list').innerHTML = '<div class="empty">Connect your Apps Script URL to enable BOL file management.<br><br><small>Set APPS_SCRIPT_URL in the code.</small></div>';
+      return;
+    }
+    document.getElementById('bol-files-list').innerHTML = '<div class="loading">Loading files...</div>';
+    try {
+      const res = await fetch(APPS_SCRIPT_URL + '?action=getBolFiles');
+      const files = await res.json();
+      renderBolFiles(files);
+    } catch(e) {
+      document.getElementById('bol-files-list').innerHTML = '<div class="empty" style="color:var(--danger)">Could not load BOL files</div>';
+    }
+  };
+
+  function renderBolFiles(files) {
+    const container = document.getElementById('bol-files-list');
+    const navPill = document.getElementById('nav-bol-count');
+    const bannerBtn = document.getElementById('bol-banner-btn');
+    if (!files.length) {
+      container.innerHTML = '<div class="empty">No BOL files waiting to download</div>';
+      navPill.style.display = 'none';
+      bannerBtn.style.display = 'none';
+      return;
+    }
+    navPill.textContent = files.length;
+    navPill.style.display = 'inline-block';
+    bannerBtn.textContent = `${files.length} BOL${files.length>1?'s':''} ready`;
+    bannerBtn.style.display = 'inline-flex';
+    document.getElementById('bol-files-title').textContent = `Waiting to Download (${files.length})`;
+    container.innerHTML = files.map(f => `
+      <div class="bol-file-item">
+        <div class="bol-file-icon">PDF</div>
+        <div style="flex:1">
+          <div class="bol-file-name">${f.name}</div>
+          <div class="bol-file-meta">Ready to download</div>
+        </div>
+        <a href="${f.url}" target="_blank" class="btn sm" style="color:var(--accent)">Open</a>
+        <button class="btn danger sm" onclick="deleteBolFile('${f.id}','${f.name}')">Remove</button>
+      </div>`).join('');
+  }
+
+  let stagedBols = [];
+  window.handleBolFileSelect = function() {
+    const input = document.getElementById('bol-file-input');
+    Array.from(input.files).forEach(f => { if (!stagedBols.find(e => e.name===f.name)) stagedBols.push(f); });
+    input.value = '';
+    renderStagedBols();
+  };
+  function renderStagedBols() {
+    const list = document.getElementById('staged-files-list'), btn = document.getElementById('bol-upload-btn');
+    if (stagedBols.length) { list.innerHTML = '<strong>Ready to upload:</strong><br>' + stagedBols.map(f=>f.name).join('<br>'); list.style.display='block'; btn.style.display='inline-flex'; }
+    else { list.style.display='none'; btn.style.display='none'; }
+  }
+  window.triggerBolUpload = function(e) {
+    e.stopPropagation();
+    if (!APPS_SCRIPT_URL) { Swal.fire('Not configured', 'Set APPS_SCRIPT_URL to enable uploads.', 'info'); return; }
+    // Upload logic via Apps Script fetch
+    Swal.fire({ title: 'Uploading...', didOpen: () => Swal.showLoading() });
+    let done = 0;
+    stagedBols.forEach(f => {
+      const r = new FileReader();
+      r.onload = async ev => {
+        await fetch(APPS_SCRIPT_URL, { method:'POST', body: JSON.stringify({ action:'uploadBolFile', data: ev.target.result, name: f.name }) });
+        if (++done === stagedBols.length) { stagedBols=[]; renderStagedBols(); loadBolFiles(); Swal.fire({ title:'Uploaded!', icon:'success', timer:1500, showConfirmButton:false }); }
+      };
+      r.readAsDataURL(f);
+    });
+  };
+  window.deleteBolFile = async function(id, name) {
+    const result = await Swal.fire({ title:'Remove BOL?', html:`Delete <strong>${name}</strong>?`, icon:'warning', showCancelButton:true, confirmButtonColor:'var(--danger)', confirmButtonText:'Remove' });
+    if (!result.isConfirmed) return;
+    await fetch(APPS_SCRIPT_URL + `?action=deleteBolFile&id=${id}`);
+    loadBolFiles();
+  };
+  window.downloadAllBols = function() {
+    if (!APPS_SCRIPT_URL) { Swal.fire('Not configured','Set APPS_SCRIPT_URL to enable downloads.','info'); return; }
+    Swal.fire({ title:'Zipping...', didOpen:()=>Swal.showLoading() });
+    fetch(APPS_SCRIPT_URL + '?action=getZippedBols').then(r=>r.json()).then(res => {
+      if (res.success) { const a=document.createElement('a'); a.href='data:application/zip;base64,'+res.data; a.download=res.name; document.body.appendChild(a); a.click(); document.body.removeChild(a); Swal.fire({title:'Downloaded!',icon:'success',timer:1500,showConfirmButton:false}); }
+      else Swal.fire('Error', res.error, 'error');
+    });
+  };
+  window.archiveBolFiles = function() {
+    if (!APPS_SCRIPT_URL) { Swal.fire('Not configured','Set APPS_SCRIPT_URL to enable archiving.','info'); return; }
+    fetch(APPS_SCRIPT_URL + '?action=archiveBolFiles').then(r=>r.json()).then(res => {
+      if (res.success) { loadBolFiles(); Swal.fire('Archived!', `Moved ${res.count} files to ${res.month}.`, 'success'); }
+      else Swal.fire('Error', res.error, 'error');
+    });
+  };
+
+  // ════════════════════════════════
+  // ARCHIVE SEARCH
+  // ════════════════════════════════
+  window.runArchiveSearch = async function() {
+    const store = document.getElementById('arch-store').value;
+    const palletId = document.getElementById('arch-pallet').value.trim().toLowerCase();
+    const bolNum = document.getElementById('arch-bol').value.trim().toLowerCase();
+    const notesQ = document.getElementById('arch-notes').value.trim().toLowerCase();
+    const bolDate = document.getElementById('arch-bol-date').value;
+
+    if (!store && !palletId && !bolNum && !notesQ && !bolDate) { Swal.fire('No filters', 'Enter at least one search criteria.', 'info'); return; }
+    Swal.fire({ title: 'Searching...', didOpen: () => Swal.showLoading() });
+
+    let q = collection(db, ARCHIVE);
+    const snap = await getDocs(q);
+    let results = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+
+    if (store) results = results.filter(r => r.store === store);
+    if (palletId) results = results.filter(r => (r.palletNumber||'').toLowerCase().includes(palletId));
+    if (bolNum) results = results.filter(r => (r.bol||'').toLowerCase().includes(bolNum));
+    if (notesQ) results = results.filter(r => (r.notes||'').toLowerCase().includes(notesQ));
+    if (bolDate) results = results.filter(r => {
+      if (!r.bolDate) return false;
+      const d = new Date(r.bolDate.seconds*1000).toLocaleDateString();
+      return d === new Date(bolDate).toLocaleDateString();
+    });
+
+    Swal.close();
+    document.getElementById('archive-results-wrap').style.display = results.length ? 'block' : 'none';
+    document.getElementById('archive-no-results').style.display = results.length ? 'none' : 'block';
+    document.getElementById('archive-result-count').textContent = `${results.length} result${results.length!==1?'s':''} found`;
+
+    document.getElementById('archive-tbody').innerHTML = results.map(r => {
+      const date = r.createdAt ? new Date(r.createdAt.seconds*1000).toLocaleDateString() : '—';
+      const bolDate = r.bolDate ? new Date(r.bolDate.seconds*1000).toLocaleDateString() : '—';
+      return `<tr>
+        <td class="mono">${date}</td>
+        <td><strong>${r.store}</strong></td>
+        <td class="mono">${r.palletNumber||'—'}</td>
+        <td class="mono">${r.length||'?'}×${r.width||'?'}×${r.height||'?'}</td>
+        <td class="mono">${Number(r.weight||0).toLocaleString()} lbs</td>
+        <td style="max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--text2)">${r.notes||'—'}</td>
+        <td class="mono" style="color:var(--success);font-weight:500">${r.bol||'—'}</td>
+        <td class="mono" style="color:var(--text3)">${bolDate}</td>
+        <td class="mono" style="color:var(--warn);font-weight:500">${r.hazmatId||'—'}</td>
+      </tr>`;
+    }).join('');
+  };
+
+  window.clearArchiveSearch = function() {
+    ['arch-store','arch-pallet','arch-bol','arch-notes','arch-bol-date'].forEach(id => document.getElementById(id).value='');
+    document.getElementById('archive-results-wrap').style.display='none';
+    document.getElementById('archive-no-results').style.display='none';
+  };
+
+  // ════════════════════════════════
+  // BUG REPORT
+  // ════════════════════════════════
+  window.submitBugReport = async function() {
+    const name = document.getElementById('bug-name').value.trim();
+    const date = document.getElementById('bug-date').value;
+    const report = document.getElementById('bug-report').value.trim();
+    if (!name||!report) { Swal.fire('Missing fields','Please fill in your name and report.','error'); return; }
+    Swal.fire({ title:'Submitting...', didOpen:()=>Swal.showLoading() });
+    await addDoc(collection(db, BUGS), { name, date, report, submittedAt: serverTimestamp() });
+    document.getElementById('bug-name').value='';
+    document.getElementById('bug-report').value='';
+    document.getElementById('bug-char-count').textContent='0';
+    Swal.fire({ title:'Submitted!', text:'Thanks for the feedback.', icon:'success', timer:2000, showConfirmButton:false });
+    setTimeout(() => showPage('dashboard'), 2200);
+  };
+  window.updateBugCount = function(el) { document.getElementById('bug-char-count').textContent = el.value.length; };
+
+  // ════════════════════════════════
+  // HELPERS
+  // ════════════════════════════════
+  window.openModal = function(id) { document.getElementById(id).classList.add('open'); };
+  window.closeModal = function(id) { document.getElementById(id).classList.remove('open'); };
+
+  window.toggleCheck = function(cbId, rowId, borderColor, bgColor) {
+    const cb = document.getElementById(cbId);
+    cb.checked = !cb.checked;
+    const row = document.getElementById(rowId);
+    row.style.borderColor = cb.checked ? borderColor : '';
+    row.style.background = cb.checked ? bgColor : '';
+  };
+
+  function setCheckState(cbId, rowId, checked, borderColor, bgColor) {
+    const cb = document.getElementById(cbId);
+    const row = document.getElementById(rowId);
+    cb.checked = !!checked;
+    row.style.borderColor = checked ? borderColor : '';
+    row.style.background = checked ? bgColor : '';
+  }
+
+  window.toggleHazmatQty = async function(type) {
+    const cb = document.getElementById(`entry-${type}`);
+    const qty = document.getElementById(`entry-${type}-qty`);
+    const row = document.getElementById(`hr-${type}`);
+    if (cb.checked) {
+      const result = await Swal.fire({ title: 'HAZMAT Alert', html: `Marking pallet as containing <strong>${type.toUpperCase()}</strong>.<br>Ensure proper handling and documentation.`, icon: 'warning', showCancelButton: true, confirmButtonColor: 'var(--warn)', confirmButtonText: 'I understand' });
+      if (result.isConfirmed) { qty.disabled = false; qty.focus(); row.classList.remove('inactive'); }
+      else { cb.checked = false; }
+    } else { qty.disabled = true; qty.value = ''; row.classList.add('inactive'); }
+  };
+
+  function generateHazmatId() {
+    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+    let id = 'HAZ-';
+    for (let i = 0; i < 5; i++) id += chars.charAt(Math.floor(Math.random() * chars.length));
+    return id;
+  }
+
+  window.copyText = function(text, btn) {
+    navigator.clipboard.writeText(text);
+    const orig = btn.textContent;
+    btn.textContent = 'Copied!';
+    btn.classList.add('success');
+    setTimeout(() => { btn.textContent = orig; btn.classList.remove('success'); }, 1500);
+  };
+
+  // ── Drag & drop for BOL zone
+  const dropZone = document.getElementById('bol-drop-zone');
+  dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('dragover'); });
+  dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
+  dropZone.addEventListener('drop', e => {
+    e.preventDefault(); dropZone.classList.remove('dragover');
+    Array.from(e.dataTransfer.files).filter(f => f.type==='application/pdf').forEach(f => { if (!stagedBols.find(e=>e.name===f.name)) stagedBols.push(f); });
+    renderStagedBols();
+  });
+
+  // ── Close modals on overlay click
+  document.querySelectorAll('.modal-overlay').forEach(overlay => {
+    overlay.addEventListener('click', e => { if (e.target === overlay) overlay.classList.remove('open'); });
+  });
+
+  // ════════════════════════════════
+  // INIT
+  // ════════════════════════════════
+  async function init() {
+    await loadStores();
+    await loadDashboard();
+  }
+
+  init();
+</script>
+</body>
+</html>
