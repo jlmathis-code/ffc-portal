@@ -1399,7 +1399,22 @@
   // ════════════════════════════════
   // BOL CENTER (Google Drive via Apps Script)
   // ════════════════════════════════
-  const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbx-IF-BA7xWdRc9agBvg84-RJitw2f_GX-GcEKVU83Sf-0Ic1MJhBe7F3KUQ-ltXXA0bA/exec'; // ← paste your existing Apps Script web app URL here
+  const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxvNqvraw3Bix_XSBtTFd5aUiSqWCF5LWd834Xq6wNXOvvhsboXkyn8-X1UCzjFZN1D4w/exec'; // ← paste your existing Apps Script web app URL here
+
+  // JSONP helper for Apps Script (avoids CORS)
+  function callAppsScript(params) {
+    return new Promise((resolve, reject) => {
+      const cbName = 'cb_' + Date.now();
+      const url = APPS_SCRIPT_URL + '?' + new URLSearchParams({...params, callback: cbName}).toString();
+      const script = document.createElement('script');
+      const timeout = setTimeout(() => { cleanup(); reject(new Error('Timeout')); }, 15000);
+      function cleanup() { clearTimeout(timeout); delete window[cbName]; if (script.parentNode) script.parentNode.removeChild(script); }
+      window[cbName] = (data) => { cleanup(); resolve(data); };
+      script.onerror = () => { cleanup(); reject(new Error('Script load failed')); };
+      script.src = url;
+      document.head.appendChild(script);
+    });
+  }
 
   window.loadBolFiles = async function() {
     if (!APPS_SCRIPT_URL) {
@@ -1408,11 +1423,10 @@
     }
     document.getElementById('bol-files-list').innerHTML = '<div class="loading">Loading files...</div>';
     try {
-      const res = await fetch(APPS_SCRIPT_URL + '?action=getBolFiles');
-      const files = await res.json();
-      renderBolFiles(files);
+      const files = await callAppsScript({ action: 'getBolFiles' });
+      renderBolFiles(Array.isArray(files) ? files : []);
     } catch(e) {
-      document.getElementById('bol-files-list').innerHTML = '<div class="empty" style="color:var(--danger)">Could not load BOL files</div>';
+      document.getElementById('bol-files-list').innerHTML = '<div class="empty" style="color:var(--danger)">Could not load BOL files — check Apps Script URL</div>';
     }
   };
 
@@ -1473,23 +1487,26 @@
   window.deleteBolFile = async function(id, name) {
     const result = await Swal.fire({ title:'Remove BOL?', html:`Delete <strong>${name}</strong>?`, icon:'warning', showCancelButton:true, confirmButtonColor:'var(--danger)', confirmButtonText:'Remove' });
     if (!result.isConfirmed) return;
-    await fetch(APPS_SCRIPT_URL + `?action=deleteBolFile&id=${id}`);
+    try { await callAppsScript({ action: 'deleteBolFile', id }); } catch(e) {}
     loadBolFiles();
   };
-  window.downloadAllBols = function() {
+  window.downloadAllBols = async function() {
     if (!APPS_SCRIPT_URL) { Swal.fire('Not configured','Set APPS_SCRIPT_URL to enable downloads.','info'); return; }
     Swal.fire({ title:'Zipping...', didOpen:()=>Swal.showLoading() });
-    fetch(APPS_SCRIPT_URL + '?action=getZippedBols').then(r=>r.json()).then(res => {
+    try {
+      const res = await callAppsScript({ action: 'getZippedBols' });
       if (res.success) { const a=document.createElement('a'); a.href='data:application/zip;base64,'+res.data; a.download=res.name; document.body.appendChild(a); a.click(); document.body.removeChild(a); Swal.fire({title:'Downloaded!',icon:'success',timer:1500,showConfirmButton:false}); }
       else Swal.fire('Error', res.error, 'error');
-    });
+    } catch(e) { Swal.fire('Error', e.message, 'error'); }
   };
-  window.archiveBolFiles = function() {
+  window.archiveBolFiles = async function() {
     if (!APPS_SCRIPT_URL) { Swal.fire('Not configured','Set APPS_SCRIPT_URL to enable archiving.','info'); return; }
-    fetch(APPS_SCRIPT_URL + '?action=archiveBolFiles').then(r=>r.json()).then(res => {
+    Swal.fire({ title:'Archiving...', didOpen:()=>Swal.showLoading() });
+    try {
+      const res = await callAppsScript({ action: 'archiveBolFiles' });
       if (res.success) { loadBolFiles(); Swal.fire('Archived!', `Moved ${res.count} files to ${res.month}.`, 'success'); }
       else Swal.fire('Error', res.error, 'error');
-    });
+    } catch(e) { Swal.fire('Error', e.message, 'error'); }
   };
 
   // ════════════════════════════════
