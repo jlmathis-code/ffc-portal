@@ -14,13 +14,13 @@
       --bg: #f4f5f7;
       --surface: #ffffff;
       --surface2: #f0f1f3;
-      --sidebar-bg: #f8f9fa;
+      --sidebar-bg: #BD3131;
       --border: #e4e6ea;
       --border2: #c9cdd6;
       --text: #1a1d23;
       --text2: #4a5060;
       --text3: #8c94a3;
-      --accent: #00897b;
+      --accent: #BD3131;
       --accent-dark: #00695c;
       --accent-bg: #e8f5f3;
       --accent-border: #80cbc4;
@@ -49,7 +49,7 @@
 
     /* ── LAYOUT ── */
     .shell { display: flex; height: 100vh; overflow: hidden; }
-    .sidebar { width: 240px; min-width: 240px; background: var(--sidebar-bg); border-right: 1px solid var(--border); display: flex; flex-direction: column; overflow-y: auto; }
+    .sidebar { width: 260px; min-width: 260px; background: #00897b; border-right: none; display: flex; flex-direction: column; overflow-y: auto; }
     .main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
     .topbar { background: var(--surface); border-bottom: 1px solid var(--border); padding: 14px 28px; display: flex; align-items: center; gap: 12px; flex-shrink: 0; }
     .topbar-title { font-size: 15px; font-weight: 500; color: var(--text); flex: 1; letter-spacing: -0.01em; }
@@ -57,23 +57,25 @@
     .content { padding: 24px; flex: 1; overflow-y: auto; }
 
     /* ── SIDEBAR ── */
-    .sidebar-logo { padding: 20px 20px 16px; border-bottom: 1px solid var(--border); }
-    .sidebar-logo .wordmark { font-size: 13px; font-weight: 600; color: var(--text); letter-spacing: 0.01em; }
-    .sidebar-logo .sub { font-size: 11px; color: var(--text3); margin-top: 2px; letter-spacing: 0.02em; }
-    .logo-v { display: inline-block; background: var(--accent); color: #fff; font-size: 9px; font-weight: 700; padding: 1px 6px; border-radius: 3px; margin-left: 6px; vertical-align: middle; letter-spacing: 0.04em; }
-    .nav-section { padding: 16px 20px 6px; font-size: 10px; font-weight: 600; color: var(--text3); letter-spacing: 0.12em; text-transform: uppercase; }
-    .nav-item { display: flex; align-items: center; gap: 10px; padding: 7px 20px; cursor: pointer; font-size: 12px; font-weight: 400; color: var(--text2); transition: all 0.12s; user-select: none; letter-spacing: 0.02em; border-left: 2px solid transparent; }
-    .nav-item:hover { background: var(--surface); color: var(--text); }
-    .nav-item.active { background: var(--surface); color: var(--accent); font-weight: 500; border-left-color: var(--accent); }
-    .nav-item svg { width: 15px; height: 15px; opacity: 0.6; flex-shrink: 0; }
-    .nav-item.active svg { opacity: 1; color: var(--accent); }
-    .nav-pill { margin-left: auto; background: var(--danger); color: #fff; font-size: 10px; font-weight: 600; padding: 1px 6px; border-radius: 10px; }
-    .nav-pill.green { background: var(--accent); }
-    .sidebar-footer { margin-top: auto; padding: 14px 20px; border-top: 1px solid var(--border); }
+    .sidebar { width: 260px; min-width: 260px; background: #00897b; border-right: none; display: flex; flex-direction: column; overflow-y: auto; }
+    .sidebar-logo { padding: 22px 22px 18px; border-bottom: 1px solid rgba(255,255,255,0.15); }
+    .sidebar-logo .wordmark { font-size: 14px; font-weight: 700; color: #ffffff; letter-spacing: 0.02em; text-transform: uppercase; }
+    .sidebar-logo .sub { font-size: 11px; color: rgba(255,255,255,0.65); margin-top: 3px; letter-spacing: 0.04em; text-transform: uppercase; }
+    .logo-v { display: inline-block; background: rgba(255,255,255,0.2); color: #fff; font-size: 9px; font-weight: 700; padding: 1px 6px; border-radius: 3px; margin-left: 6px; vertical-align: middle; letter-spacing: 0.04em; }
+    .nav-section { padding: 18px 22px 6px; font-size: 10px; font-weight: 700; color: rgba(255,255,255,0.5); letter-spacing: 0.14em; text-transform: uppercase; }
+    .nav-item { display: flex; align-items: center; gap: 12px; padding: 11px 22px; cursor: pointer; font-size: 13px; font-weight: 600; color: rgba(255,255,255,0.8); transition: all 0.18s ease; user-select: none; letter-spacing: 0.06em; text-transform: uppercase; border-left: 3px solid transparent; transform: translateY(0); }
+    .nav-item:hover { background: rgba(255,255,255,0.12); color: #ffffff; border-left-color: rgba(255,255,255,0.5); transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
+    .nav-item.active { background: rgba(255,255,255,0.18); color: #ffffff; font-weight: 700; border-left-color: #ffffff; }
+    .nav-item svg { width: 17px; height: 17px; opacity: 0.75; flex-shrink: 0; }
+    .nav-item:hover svg { opacity: 1; }
+    .nav-item.active svg { opacity: 1; }
+    .nav-pill { margin-left: auto; background: rgba(255,255,255,0.25); color: #fff; font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 10px; }
+    .nav-pill.green { background: rgba(255,255,255,0.3); }
+    .sidebar-footer { margin-top: auto; padding: 16px 22px; border-top: 1px solid rgba(255,255,255,0.15); }
     .user-row { display: flex; align-items: center; gap: 10px; }
-    .avatar { width: 30px; height: 30px; border-radius: 50%; background: var(--accent-bg); color: var(--accent); font-size: 11px; font-weight: 600; display: flex; align-items: center; justify-content: center; flex-shrink: 0; border: 1px solid var(--accent-border); }
-    .user-name { font-size: 12px; font-weight: 500; color: var(--text); }
-    .user-role { font-size: 11px; color: var(--text3); }
+    .avatar { width: 32px; height: 32px; border-radius: 50%; background: rgba(255,255,255,0.2); color: #fff; font-size: 12px; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0; border: 1px solid rgba(255,255,255,0.3); }
+    .user-name { font-size: 12px; font-weight: 600; color: #ffffff; text-transform: uppercase; letter-spacing: 0.04em; }
+    .user-role { font-size: 11px; color: rgba(255,255,255,0.6); }
 
     /* ── BUTTONS ── */
     .btn { display: inline-flex; align-items: center; gap: 6px; padding: 7px 14px; border-radius: var(--radius); font-size: 13px; font-weight: 500; cursor: pointer; border: 1px solid var(--border); background: var(--surface); color: var(--text2); transition: all 0.12s; font-family: inherit; white-space: nowrap; }
