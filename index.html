@@ -830,9 +830,11 @@
     if (!allStores.length) {
       // Seed default stores if empty
       const defaults = [
-        'Bismarck/101','Fargo/102','Sioux Falls/103','Rapid City/104',
-        'Omaha/105','Lincoln/106','Grand Forks/107','Minot/108',
-        'Aberdeen/109','Spee-Dee/110','FFC/114','IP/116','Sidney/118'
+        'AP/54','BL/86','CF/82','CH/26','CP/32','CS/22','DM/60','DS/6',
+        'EA/40','EN/98','FA/64','GF/70','GK/84','IC/44','JO/92','KI/72',
+        'LI/94','MB/30','MI/24','MO/20','OM/58','OP/88','RC/76','RH/62',
+        'RO/90','RS/74','SC/56','SF/48','SH/16','SM/50','SP/78','SS/80',
+        'TC/96','TU/28','WI/38'
       ];
       const batch = writeBatch(db);
       defaults.forEach(name => batch.set(doc(collection(db, STORES)), { name }));
@@ -901,7 +903,7 @@
     // This is handled separately by checkBolFiles()
 
     // Build table
-    const bottomStores = ['Spee-Dee/110','FFC/114','IP/116','Sidney/118'];
+    const bottomStores = [];
     const regularStores = allStores.filter(s => !bottomStores.includes(s) && storePallets[s]);
     const bottomFiltered = bottomStores.filter(s => storePallets[s]);
     const orderedStores = [...regularStores, ...bottomFiltered];
@@ -938,9 +940,7 @@
     }
 
     // Also show all stores even with 0 pallets
-    const allStoreRows = allStores.filter(s => !bottomStores.includes(s));
-    const allBottom = bottomStores;
-    const combined = [...allStoreRows, ...allBottom];
+    const combined = allStores;
 
     combined.forEach(storeName => {
       const sp = storePallets[storeName] || [];
@@ -952,7 +952,7 @@
       const weight = sp.reduce((s,p) => s+(Number(p.weight)||0), 0);
       const alerts = buildAlertBadges(sp, bc);
       const lastRouted = getLastRouted(sp);
-      const isBottom = bottomStores.includes(storeName);
+      const isBottom = false;
       rows += `<tr class="clickable${hasBol?' row-bol':''}" onclick="${sp.length?`openDetail('${storeName}')`:'void(0)'}" style="${sp.length?'':'opacity:0.55;cursor:default'}${isBottom?';border-top:2px solid var(--border2)':''}">
         <td><div class="store-name">${storeName}</div></td>
         <td><div class="badge-alerts">${alerts || '<span class="badge neutral">—</span>'}</div></td>
@@ -1358,7 +1358,7 @@
   // ════════════════════════════════
   // BOL CENTER (Google Drive via Apps Script)
   // ════════════════════════════════
-  const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbys0Buxj-bGMKgLQErJGhb3tUlHM1Tph3CiW1kLiqAjthWvoxpn7UJKbgMhgfnedYJHSw/exec'; // ← paste your existing Apps Script web app URL here
+  const APPS_SCRIPT_URL = ''; // ← paste your existing Apps Script web app URL here
 
   window.loadBolFiles = async function() {
     if (!APPS_SCRIPT_URL) {
