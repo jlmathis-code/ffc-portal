@@ -779,6 +779,10 @@
     getFirestore, collection, doc, addDoc, getDoc, getDocs,
     updateDoc, deleteDoc, query, where, orderBy, serverTimestamp, writeBatch
   } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-firestore.js";
+  import {
+    getStorage, ref, uploadBytesResumable, getDownloadURL,
+    listAll, deleteObject, getMetadata
+  } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-storage.js";
 
   const firebaseConfig = {
     apiKey: "AIzaSyBBsaTE3CamyRCA6xjZ1jk6TOQKL3zb5bc",
@@ -791,6 +795,7 @@
 
   const app = initializeApp(firebaseConfig);
   const db = getFirestore(app);
+  const storage = getStorage(app);
 
   // ── Collections
   const PALLETS = 'pallets';
@@ -1397,36 +1402,26 @@
   };
 
   // ════════════════════════════════
-  // BOL CENTER (Google Drive via Apps Script)
+  // BOL CENTER — Firebase Storage
   // ════════════════════════════════
-  const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxvNqvraw3Bix_XSBtTFd5aUiSqWCF5LWd834Xq6wNXOvvhsboXkyn8-X1UCzjFZN1D4w/exec'; // ← paste your existing Apps Script web app URL here
-
-  // JSONP helper for Apps Script (avoids CORS)
-  function callAppsScript(params) {
-    return new Promise((resolve, reject) => {
-      const cbName = 'cb_' + Date.now();
-      const url = APPS_SCRIPT_URL + '?' + new URLSearchParams({...params, callback: cbName}).toString();
-      const script = document.createElement('script');
-      const timeout = setTimeout(() => { cleanup(); reject(new Error('Timeout')); }, 15000);
-      function cleanup() { clearTimeout(timeout); delete window[cbName]; if (script.parentNode) script.parentNode.removeChild(script); }
-      window[cbName] = (data) => { cleanup(); resolve(data); };
-      script.onerror = () => { cleanup(); reject(new Error('Script load failed')); };
-      script.src = url;
-      document.head.appendChild(script);
-    });
-  }
+  const BOL_PENDING_PATH = 'bol/pending';
+  const BOL_ARCHIVE_PATH = 'bol/archive';
 
   window.loadBolFiles = async function() {
-    if (!APPS_SCRIPT_URL) {
-      document.getElementById('bol-files-list').innerHTML = '<div class="empty">Connect your Apps Script URL to enable BOL file management.<br><br><small>Set APPS_SCRIPT_URL in the code.</small></div>';
-      return;
-    }
-    document.getElementById('bol-files-list').innerHTML = '<div class="loading">Loading files...</div>';
+    const container = document.getElementById('bol-files-list');
+    container.innerHTML = '<div class="loading">Loading files...</div>';
     try {
-      const files = await callAppsScript({ action: 'getBolFiles' });
-      renderBolFiles(Array.isArray(files) ? files : []);
+      const pendingRef = ref(storage, BOL_PENDING_PATH);
+      const result = await listAll(pendingRef);
+      const files = await Promise.all(result.items.map(async item => {
+        const url = await getDownloadURL(item);
+        let size = '';
+        try { const meta = await getMetadata(item); size = (meta.size / 1024).toFixed(0) + ' KB'; } catch(e) {}
+        return { name: item.name, url, fullPath: item.fullPath, size };
+      }));
+      renderBolFiles(files);
     } catch(e) {
-      document.getElementById('bol-files-list').innerHTML = '<div class="empty" style="color:var(--danger)">Could not load BOL files — check Apps Script URL</div>';
+      container.innerHTML = '<div class="empty" style="color:var(--danger)">Could not load BOL files: ' + e.message + '</div>';
     }
   };
 
@@ -1436,78 +1431,153 @@
     const bannerBtn = document.getElementById('bol-banner-btn');
     if (!files.length) {
       container.innerHTML = '<div class="empty">No BOL files waiting to download</div>';
+      document.getElementById('bol-files-title').textContent = 'Waiting to Download';
       navPill.style.display = 'none';
       bannerBtn.style.display = 'none';
       return;
     }
     navPill.textContent = files.length;
     navPill.style.display = 'inline-block';
-    bannerBtn.textContent = `${files.length} BOL${files.length>1?'s':''} ready`;
+    bannerBtn.textContent = files.length + ' BOL' + (files.length > 1 ? 's' : '') + ' ready';
     bannerBtn.style.display = 'inline-flex';
-    document.getElementById('bol-files-title').textContent = `Waiting to Download (${files.length})`;
+    document.getElementById('bol-files-title').textContent = 'Waiting to Download (' + files.length + ')';
     container.innerHTML = files.map(f => `
       <div class="bol-file-item">
         <div class="bol-file-icon">PDF</div>
         <div style="flex:1">
           <div class="bol-file-name">${f.name}</div>
-          <div class="bol-file-meta">Ready to download</div>
+          <div class="bol-file-meta">${f.size || ''}</div>
         </div>
         <a href="${f.url}" target="_blank" class="btn sm" style="color:var(--accent)">Open</a>
-        <button class="btn danger sm" onclick="deleteBolFile('${f.id}','${f.name}')">Remove</button>
+        <button class="btn danger sm" onclick="deleteBolFile('${f.fullPath}','${f.name}')">Remove</button>
       </div>`).join('');
   }
 
   let stagedBols = [];
+
   window.handleBolFileSelect = function() {
     const input = document.getElementById('bol-file-input');
-    Array.from(input.files).forEach(f => { if (!stagedBols.find(e => e.name===f.name)) stagedBols.push(f); });
+    Array.from(input.files).forEach(f => { if (!stagedBols.find(e => e.name === f.name)) stagedBols.push(f); });
     input.value = '';
     renderStagedBols();
   };
+
   function renderStagedBols() {
-    const list = document.getElementById('staged-files-list'), btn = document.getElementById('bol-upload-btn');
-    if (stagedBols.length) { list.innerHTML = '<strong>Ready to upload:</strong><br>' + stagedBols.map(f=>f.name).join('<br>'); list.style.display='block'; btn.style.display='inline-flex'; }
-    else { list.style.display='none'; btn.style.display='none'; }
+    const list = document.getElementById('staged-files-list');
+    const btn = document.getElementById('bol-upload-btn');
+    if (stagedBols.length) {
+      list.innerHTML = '<strong>Ready to upload:</strong><br>' + stagedBols.map(f => f.name).join('<br>');
+      list.style.display = 'block';
+      btn.style.display = 'inline-flex';
+    } else {
+      list.style.display = 'none';
+      btn.style.display = 'none';
+    }
   }
-  window.triggerBolUpload = function(e) {
+
+  window.triggerBolUpload = async function(e) {
     e.stopPropagation();
-    if (!APPS_SCRIPT_URL) { Swal.fire('Not configured', 'Set APPS_SCRIPT_URL to enable uploads.', 'info'); return; }
-    // Upload logic via Apps Script fetch
-    Swal.fire({ title: 'Uploading...', didOpen: () => Swal.showLoading() });
-    let done = 0;
-    stagedBols.forEach(f => {
-      const r = new FileReader();
-      r.onload = async ev => {
-        await fetch(APPS_SCRIPT_URL, { method:'POST', body: JSON.stringify({ action:'uploadBolFile', data: ev.target.result, name: f.name }) });
-        if (++done === stagedBols.length) { stagedBols=[]; renderStagedBols(); loadBolFiles(); Swal.fire({ title:'Uploaded!', icon:'success', timer:1500, showConfirmButton:false }); }
-      };
-      r.readAsDataURL(f);
+    if (!stagedBols.length) return;
+    const btn = document.getElementById('bol-upload-btn');
+    btn.disabled = true;
+    btn.textContent = 'Uploading...';
+    Swal.fire({ title: 'Uploading ' + stagedBols.length + ' file' + (stagedBols.length > 1 ? 's' : '') + '...', didOpen: () => Swal.showLoading() });
+    try {
+      await Promise.all(stagedBols.map(file => {
+        const fileRef = ref(storage, BOL_PENDING_PATH + '/' + file.name);
+        return uploadBytesResumable(fileRef, file);
+      }));
+      stagedBols = [];
+      renderStagedBols();
+      btn.disabled = false;
+      btn.textContent = 'Start Upload';
+      Swal.fire({ title: 'Uploaded!', icon: 'success', timer: 1500, showConfirmButton: false });
+      loadBolFiles();
+    } catch(err) {
+      btn.disabled = false;
+      btn.textContent = 'Start Upload';
+      Swal.fire('Upload Failed', err.message, 'error');
+    }
+  };
+
+  window.deleteBolFile = async function(fullPath, name) {
+    const result = await Swal.fire({
+      title: 'Remove BOL?',
+      html: 'Delete <strong>' + name + '</strong>?',
+      icon: 'warning', showCancelButton: true,
+      confirmButtonColor: 'var(--danger)', confirmButtonText: 'Remove'
     });
-  };
-  window.deleteBolFile = async function(id, name) {
-    const result = await Swal.fire({ title:'Remove BOL?', html:`Delete <strong>${name}</strong>?`, icon:'warning', showCancelButton:true, confirmButtonColor:'var(--danger)', confirmButtonText:'Remove' });
     if (!result.isConfirmed) return;
-    try { await callAppsScript({ action: 'deleteBolFile', id }); } catch(e) {}
+    await deleteObject(ref(storage, fullPath));
     loadBolFiles();
+    Swal.fire({ title: 'Removed!', icon: 'success', timer: 1200, showConfirmButton: false });
   };
+
   window.downloadAllBols = async function() {
-    if (!APPS_SCRIPT_URL) { Swal.fire('Not configured','Set APPS_SCRIPT_URL to enable downloads.','info'); return; }
-    Swal.fire({ title:'Zipping...', didOpen:()=>Swal.showLoading() });
+    Swal.fire({ title: 'Preparing download...', text: 'Opening each BOL file in a new tab.', didOpen: () => Swal.showLoading() });
     try {
-      const res = await callAppsScript({ action: 'getZippedBols' });
-      if (res.success) { const a=document.createElement('a'); a.href='data:application/zip;base64,'+res.data; a.download=res.name; document.body.appendChild(a); a.click(); document.body.removeChild(a); Swal.fire({title:'Downloaded!',icon:'success',timer:1500,showConfirmButton:false}); }
-      else Swal.fire('Error', res.error, 'error');
-    } catch(e) { Swal.fire('Error', e.message, 'error'); }
+      const pendingRef = ref(storage, BOL_PENDING_PATH);
+      const result = await listAll(pendingRef);
+      if (!result.items.length) { Swal.fire('No files', 'No BOL files to download.', 'info'); return; }
+      Swal.close();
+      for (const item of result.items) {
+        const url = await getDownloadURL(item);
+        const a = document.createElement('a');
+        a.href = url; a.target = '_blank'; a.download = item.name;
+        document.body.appendChild(a); a.click(); document.body.removeChild(a);
+        await new Promise(r => setTimeout(r, 400));
+      }
+      Swal.fire({ title: 'Done!', text: result.items.length + ' files opened.', icon: 'success', timer: 2000, showConfirmButton: false });
+    } catch(err) {
+      Swal.fire('Error', err.message, 'error');
+    }
   };
+
   window.archiveBolFiles = async function() {
-    if (!APPS_SCRIPT_URL) { Swal.fire('Not configured','Set APPS_SCRIPT_URL to enable archiving.','info'); return; }
-    Swal.fire({ title:'Archiving...', didOpen:()=>Swal.showLoading() });
+    const result = await Swal.fire({
+      title: 'Archive BOL files?',
+      text: 'Move all pending BOLs to a monthly archive folder.',
+      icon: 'question', showCancelButton: true,
+      confirmButtonColor: 'var(--accent)', confirmButtonText: 'Archive'
+    });
+    if (!result.isConfirmed) return;
+    Swal.fire({ title: 'Archiving...', didOpen: () => Swal.showLoading() });
     try {
-      const res = await callAppsScript({ action: 'archiveBolFiles' });
-      if (res.success) { loadBolFiles(); Swal.fire('Archived!', `Moved ${res.count} files to ${res.month}.`, 'success'); }
-      else Swal.fire('Error', res.error, 'error');
-    } catch(e) { Swal.fire('Error', e.message, 'error'); }
+      const pendingRef = ref(storage, BOL_PENDING_PATH);
+      const listResult = await listAll(pendingRef);
+      if (!listResult.items.length) { Swal.fire('No files', 'Nothing to archive.', 'info'); return; }
+      const now = new Date();
+      const monthYear = now.toLocaleString('default', { month: 'long' }) + ' ' + now.getFullYear();
+      let count = 0;
+      for (const item of listResult.items) {
+        const url = await getDownloadURL(item);
+        const response = await fetch(url);
+        const blob = await response.blob();
+        const archiveRef = ref(storage, BOL_ARCHIVE_PATH + '/' + monthYear + '/' + item.name);
+        await uploadBytesResumable(archiveRef, blob);
+        await deleteObject(item);
+        count++;
+      }
+      loadBolFiles();
+      Swal.fire({ title: 'Archived!', html: 'Moved ' + count + ' files to <strong>' + monthYear + '</strong>.', icon: 'success' });
+    } catch(err) {
+      Swal.fire('Error', err.message, 'error');
+    }
   };
+
+  // Drag & drop
+  const dropZone = document.getElementById('bol-drop-zone');
+  if (dropZone) {
+    dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('dragover'); });
+    dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
+    dropZone.addEventListener('drop', e => {
+      e.preventDefault(); dropZone.classList.remove('dragover');
+      Array.from(e.dataTransfer.files).filter(f => f.type === 'application/pdf').forEach(f => {
+        if (!stagedBols.find(e => e.name === f.name)) stagedBols.push(f);
+      });
+      renderStagedBols();
+    });
+  }
 
   // ════════════════════════════════
   // ARCHIVE SEARCH
