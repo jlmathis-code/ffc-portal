@@ -103,7 +103,7 @@
     .badge { display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; border-radius: 3px; font-size: 11px; font-weight: 600; white-space: nowrap; }
     .badge.priority { background: var(--danger-bg); color: var(--danger); border: 1px solid var(--danger-border); }
     .badge.ready { background: var(--success-bg); color: var(--success); border: 1px solid var(--success-border); }
-    .badge.bol-attached { background: #c8860a; color: #fff; border: 1px solid #a06808; gap: 6px; }
+    .badge.bol-attached { background: #2e7d52; color: #fff; border: 1px solid #1e5c3a; gap: 6px; }
     .badge.bol-attached .bol-count { background: #cc4444; color: #fff; font-size: 10px; font-weight: 700; padding: 0 5px; border-radius: 2px; font-family: 'DM Mono', monospace; line-height: 16px; }
     .badge.od { background: var(--orange-bg); color: var(--orange); border: 1px solid var(--orange-border); }
     .badge.hazmat { background: var(--warn-bg); color: var(--warn); border: 1px solid var(--warn-border); }
@@ -271,12 +271,16 @@
     </div>
 
     <div class="sidebar-footer">
-      <div class="user-row">
+      <div class="user-row" style="margin-bottom:10px">
         <div class="avatar">JM</div>
         <div>
           <div class="user-name">FFC Team</div>
           <div class="user-role">Scheels FFC</div>
         </div>
+      </div>
+      <div class="nav-item" onclick="openAdminLogin()" style="margin:0;padding:8px 0;border-left:none;font-size:11px;color:#e8c0c0;letter-spacing:0.1em">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" style="width:14px;height:14px;opacity:0.6"><rect x="3" y="7" width="10" height="8" rx="1"/><path d="M5 7V5a3 3 0 016 0v2"/></svg>
+        ADMIN
       </div>
     </div>
   </aside>
@@ -652,6 +656,35 @@
       </div>
     </div>
 
+    <!-- ── STORE MANAGER ── -->
+    <div id="page-admin" class="page">
+      <div class="topbar">
+        <div class="topbar-title">Store & Warehouse Manager</div>
+        <div class="topbar-actions">
+          <button class="btn primary" onclick="addNewStore()">+ Add Store</button>
+        </div>
+      </div>
+      <div class="page-scroll" style="max-width:700px">
+        <div class="form-card" style="margin-bottom:20px">
+          <div class="form-card-title">Add New Store or Warehouse</div>
+          <div style="display:flex;gap:10px;align-items:flex-end">
+            <div class="form-group" style="flex:1">
+              <label class="form-label">Store / Warehouse Name</label>
+              <input class="form-input" id="new-store-name" type="text" placeholder="e.g. KC/42 or Denver Warehouse">
+            </div>
+            <button class="btn primary" onclick="addNewStore()" style="margin-bottom:1px">Add</button>
+          </div>
+        </div>
+        <div class="section-header">
+          <div class="section-title">Current Stores & Warehouses</div>
+          <span id="store-count-label" style="font-size:12px;color:var(--text3)"></span>
+        </div>
+        <div id="store-list-container">
+          <div class="loading">Loading stores...</div>
+        </div>
+      </div>
+    </div>
+
     <!-- ── BUG REPORT ── -->
     <div id="page-bugs" class="page">
       <div class="topbar">
@@ -774,6 +807,27 @@
   </div>
 </div>
 
+<!-- Admin Login Modal -->
+<div class="modal-overlay" id="admin-modal">
+  <div class="modal" style="max-width:380px">
+    <div class="modal-header">
+      <div class="modal-title">Admin Access</div>
+      <button class="modal-close" onclick="closeModal('admin-modal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label class="form-label">Enter Password</label>
+        <input class="form-input" id="admin-password" type="password" placeholder="Password" onkeydown="if(event.key==='Enter')verifyAdminPassword()">
+      </div>
+      <div id="admin-error" style="color:var(--danger);font-size:12px;margin-top:8px;display:none">Incorrect password</div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeModal('admin-modal')">Cancel</button>
+      <button class="btn primary" onclick="verifyAdminPassword()">Enter</button>
+    </div>
+  </div>
+</div>
+
 <!-- ══════════════ FIREBASE + APP LOGIC ══════════════ -->
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-app.js";
@@ -822,7 +876,7 @@
     document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
     document.getElementById('page-' + id).classList.add('active');
     document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
-    const map = { dashboard:0, entry:1, outbound:2, gunpowder:3, bols:4, archive:5, bugs:6 };
+    const map = { dashboard:0, entry:1, outbound:2, gunpowder:3, bols:4, archive:5, bugs:6, admin:6 };
     const items = document.querySelectorAll('.nav-item');
     if (map[id] !== undefined) items[map[id]].classList.add('active');
 
@@ -985,7 +1039,7 @@
       if (dashFilter === 'bol' && !hasBol) return;
       const weight = sp.reduce((s,p) => s+(Number(p.weight)||0), 0);
       const alerts = buildAlertBadges(sp, bc);
-      const lastRouted = getLastRouted(sp);
+      const lastRouted = getLastRouted(sp, storeName);
       storeRows += `<tr class="clickable${hasBol?' row-bol':''}" onclick="${sp.length?`openDetail('${storeName}')`:'void(0)'}" style="${sp.length?'':'opacity:0.55;cursor:default'}">
         <td><div class="store-name">${storeName}</div></td>
         <td><div class="badge-alerts">${alerts || '<span class="badge neutral">—</span>'}</div></td>
@@ -1027,9 +1081,8 @@
     return badges;
   }
 
-  function getLastRouted(pallets) {
-    const store = pallets[0]?.store;
-    const archiveSeconds = allArchiveBolDates[store] || 0;
+  function getLastRouted(pallets, storeName) {
+    const archiveSeconds = allArchiveBolDates[storeName] || 0;
     const withBol = pallets.filter(p => p.bol && p.bolDate);
     let activeSeconds = 0;
     if (withBol.length) {
@@ -1079,11 +1132,18 @@
       return `<tr>
         <td><input type="checkbox" class="ship-cb" data-id="${p.id}" style="accent-color:var(--accent);width:15px;height:15px"></td>
         <td class="mono">${dateStr}</td>
-        <td class="mono">${p.palletNumber || '—'}</td>
+        <td class="mono">${p.type === 'other' ? '<span style="color:var(--text3);font-style:italic;font-size:11px">—</span>' : (p.palletNumber || '—')}</td>
         <td><div class="badge-alerts">${statusBadges || '<span class="badge neutral">—</span>'}</div></td>
         <td class="mono">${p.length||'?'}×${p.width||'?'}×${p.height||'?'}</td>
         <td class="mono">${Number(p.weight||0).toLocaleString()} lbs</td>
-        <td style="max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--text2)">${p.notes||'—'}</td>
+        <td style="max-width:160px;color:var(--text2)">
+          ${p.type === 'other'
+            ? (p.address
+                ? `<div style="font-size:11px;line-height:1.5">${p.address.street}<br>${p.address.city}, ${p.address.state} ${p.address.zip}</div>`
+                : `<div style="font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${(p.notes||'').split(' | ').slice(1,2).join('') || p.notes || '—'}</div>`)
+            : `<div style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${p.notes||'—'}</div>`
+          }
+        </td>
         <td>${optHtml}</td>
         <td><input class="tbl-input bol-input" data-id="${p.id}" value="${bolVal}" placeholder="BOL-XXXXX"></td>
         <td>
@@ -1705,6 +1765,87 @@
     setTimeout(() => { btn.textContent = orig; btn.classList.remove('success'); }, 1500);
   };
 
+
+  // ════════════════════════════════
+  // ADMIN — Store Manager
+  // ════════════════════════════════
+  const ADMIN_PASSWORD = '0803'; // ← password goes here
+
+  window.openAdminLogin = function() {
+    document.getElementById('admin-password').value = '';
+    document.getElementById('admin-error').style.display = 'none';
+    openModal('admin-modal');
+    setTimeout(() => document.getElementById('admin-password').focus(), 100);
+  };
+
+  window.verifyAdminPassword = function() {
+    const input = document.getElementById('admin-password').value;
+    if (input === ADMIN_PASSWORD) {
+      closeModal('admin-modal');
+      showPage('admin');
+      loadStoreManager();
+    } else {
+      document.getElementById('admin-error').style.display = 'block';
+      document.getElementById('admin-password').value = '';
+      document.getElementById('admin-password').focus();
+    }
+  };
+
+  window.loadStoreManager = async function() {
+    const container = document.getElementById('store-list-container');
+    container.innerHTML = '<div class="loading">Loading...</div>';
+    const snap = await getDocs(collection(db, STORES));
+    const stores = snap.docs.map(d => ({ id: d.id, name: d.data().name })).sort((a,b) => a.name.localeCompare(b.name));
+    document.getElementById('store-count-label').textContent = stores.length + ' total';
+    if (!stores.length) { container.innerHTML = '<div class="empty">No stores found</div>'; return; }
+    container.innerHTML = `
+      <table class="data-table">
+        <thead><tr><th>Name</th><th style="width:80px;text-align:center">Remove</th></tr></thead>
+        <tbody>
+          ${stores.map(s => `
+            <tr>
+              <td style="font-weight:500">${s.name}</td>
+              <td style="text-align:center">
+                <button class="btn danger sm" onclick="removeStore('${s.id}','${s.name}')">Remove</button>
+              </td>
+            </tr>`).join('')}
+        </tbody>
+      </table>`;
+  };
+
+  window.addNewStore = async function() {
+    const input = document.getElementById('new-store-name');
+    const name = input.value.trim();
+    if (!name) { Swal.fire('Missing name', 'Please enter a store or warehouse name.', 'error'); return; }
+    // Check for duplicate
+    const existing = allStores.find(s => s.toLowerCase() === name.toLowerCase());
+    if (existing) { Swal.fire('Already exists', `"${name}" is already in the list.`, 'warning'); return; }
+    Swal.fire({ title: 'Adding...', didOpen: () => Swal.showLoading() });
+    await addDoc(collection(db, STORES), { name });
+    allStores.push(name);
+    allStores.sort();
+    input.value = '';
+    loadStoreManager();
+    populateStoreSelects();
+    populateArchiveStores();
+    Swal.fire({ title: 'Added!', html: `<strong>${name}</strong> has been added.`, icon: 'success', timer: 1500, showConfirmButton: false });
+  };
+
+  window.removeStore = async function(id, name) {
+    const result = await Swal.fire({
+      title: 'Remove store?',
+      html: `Remove <strong>${name}</strong> from the list?<br><small style="color:var(--text3)">This won't delete any existing pallet data.</small>`,
+      icon: 'warning', showCancelButton: true,
+      confirmButtonColor: 'var(--danger)', confirmButtonText: 'Remove'
+    });
+    if (!result.isConfirmed) return;
+    await deleteDoc(doc(db, STORES, id));
+    allStores = allStores.filter(s => s !== name);
+    loadStoreManager();
+    populateStoreSelects();
+    populateArchiveStores();
+    Swal.fire({ title: 'Removed!', icon: 'success', timer: 1200, showConfirmButton: false });
+  };
 
   // ════════════════════════════════
   // INIT
