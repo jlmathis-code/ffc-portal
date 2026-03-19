@@ -65,7 +65,7 @@
     .nav-section { padding: 18px 22px 6px; font-size: 10px; font-weight: 700; color: #e8c0c0; letter-spacing: 0.14em; text-transform: uppercase; }
     .nav-item { display: flex; align-items: center; gap: 12px; padding: 11px 22px; cursor: pointer; font-size: 13px; font-weight: 600; color: #f0d8d8; transition: all 0.18s ease; user-select: none; letter-spacing: 0.06em; text-transform: uppercase; border-left: 3px solid transparent; transform: translateY(0); }
     .nav-item:hover { background: #c44040; color: #ffffff; border-left-color: #e8c8c8; transform: translateY(-2px); box-shadow: 0 4px 12px #8b2020; }
-    .nav-item.active { background: #c84545; color: #ffffff; font-weight: 700; border-left-color: #ffffff; }
+    .nav-item.active { background: #f3e7df; color: #8f2f2a; font-weight: 700; border-left: 4px solid #ffffff; box-shadow: 0 2px 8px rgba(0,0,0,0.12);}
     .nav-item svg { width: 17px; height: 17px; opacity: 0.75; flex-shrink: 0; }
     .nav-item:hover svg { opacity: 1; }
     .nav-item.active svg { opacity: 1; }
@@ -1674,7 +1674,41 @@
   // ════════════════════════════════
   const BOL_PENDING_PATH = 'bol/pending';
   const BOL_ARCHIVE_PATH = 'bol/archive';
+  
+async function refreshBolBadge() {
+  const navPill = document.getElementById('nav-bol-count');
+  const bannerBtn = document.getElementById('bol-banner-btn');
 
+  try {
+    const pendingRef = ref(storage, BOL_PENDING_PATH);
+    const result = await listAll(pendingRef);
+    const count = result.items.length;
+
+    if (!count) {
+      if (navPill) navPill.style.display = 'none';
+      if (bannerBtn) bannerBtn.style.display = 'none';
+      return;
+    }
+
+    if (navPill) {
+      navPill.textContent = count;
+      navPill.style.display = 'inline-block';
+    }
+
+    if (bannerBtn) {
+      bannerBtn.textContent = `${count} BOL${count > 1 ? 's' : ''} ready`;
+      bannerBtn.style.display = 'inline-flex';
+    }
+  } catch (e) {
+    console.warn('Could not refresh BOL badge:', e.message);
+    if (navPill) navPill.style.display = 'none';
+    if (bannerBtn) bannerBtn.style.display = 'none';
+  }
+}
+
+async function loadBolFiles() {
+  // your existing loadBolFiles code here
+}
   window.loadBolFiles = async function() {
     const container = document.getElementById('bol-files-list');
     container.innerHTML = '<div class="loading">Loading files...</div>';
@@ -2484,6 +2518,7 @@
   async function init() {
     await loadStores();
     await loadDashboard();
+    await refreshBolBadge();
   }
 
   init();
