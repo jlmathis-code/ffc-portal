@@ -976,6 +976,23 @@
     allStores.forEach(s => { const o = document.createElement('option'); o.value = o.textContent = s; sel.appendChild(o); });
   }
 
+  function escapeHtml(value) {
+    return String(value ?? '')
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  }
+
+  function escapeJsDoubleQuoted(value) {
+    return String(value ?? '')
+      .replace(/\\/g, '\\\\')
+      .replace(/"/g, '\\"')
+      .replace(/\n/g, ' ')
+      .replace(/\r/g, ' ');
+  }
+
   // ════════════════════════════════
   // DASHBOARD
   // ════════════════════════════════
@@ -985,7 +1002,6 @@
 
     try {
       let palletSnap;
-
       try {
         palletSnap = await getDocs(query(collection(db, PALLETS), orderBy('createdAt', 'desc')));
       } catch (orderedErr) {
@@ -998,7 +1014,6 @@
         .sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
 
       allArchiveBolDates = {};
-
       try {
         const archSnap = await getDocs(collection(db, ARCHIVE));
         archSnap.docs.forEach(d => {
@@ -1030,17 +1045,12 @@
       storePallets[s].push(p);
     });
 
-    const storeList = Object.keys(storePallets).filter(s =>
-      storePallets[s].some(p => p.type !== 'other')
-    );
+    // Stats
+    const storeList = Object.keys(storePallets).filter(s => storePallets[s].some(p => p.type !== 'other'));
     const totalWeight = pallets.reduce((sum, p) => sum + (Number(p.weight) || 0), 0);
     const bolCount = pallets.filter(p => p.bol && String(p.bol).trim()).length;
-    const bolStores = storeList.filter(s =>
-      storePallets[s].some(p => p.bol && String(p.bol).trim())
-    ).length;
-    const alertCount = storeList.filter(s =>
-      storePallets[s].some(p => p.priority || p.overDim)
-    ).length;
+    const bolStores = storeList.filter(s => storePallets[s].some(p => p.bol && String(p.bol).trim())).length;
+    const alertCount = storeList.filter(s => storePallets[s].some(p => p.priority || p.overDim)).length;
 
     document.getElementById('stat-stores').textContent = storeList.length;
     document.getElementById('stat-stores-sub').innerHTML = `<span class="stat-dot" style="background:var(--accent)"></span>${alertCount} with alerts`;
@@ -1050,17 +1060,7 @@
     document.getElementById('stat-bols-sub').innerHTML = `<span class="stat-dot" style="background:var(--success)"></span>across ${bolStores} stores`;
     document.getElementById('stat-weight').textContent = totalWeight >= 1000 ? (totalWeight / 1000).toFixed(1) + 'k' : totalWeight.toLocaleString();
 
-    const bolBtn = document.getElementById('bol-banner-btn');
-    if (bolBtn && typeof checkBolFiles === 'function') {
-      // handled elsewhere
-    }
-
-    const outboundDests = [...new Set(
-      pallets
-        .filter(p => p.type === 'other')
-        .map(p => p.store)
-        .filter(Boolean)
-    )].sort();
+    const outboundDests = [...new Set(pallets.filter(p => p.type === 'other').map(p => p.store).filter(Boolean))].sort();
 
     let html = '';
 
@@ -1073,14 +1073,18 @@
         const hasBol = bc > 0;
         if (dashFilter === 'alerts' && !hasAlerts) return;
         if (dashFilter === 'bol' && !hasBol) return;
+
         const weight = dp.reduce((s, p) => s + (Number(p.weight) || 0), 0);
         const alerts = buildAlertBadges(dp, bc);
-        nsRows += `<tr class="clickable${hasBol ? ' row-bol' : ''}" onclick="openDetail(${JSON.stringify(dest)})">
-          <td><div class="store-name">${dest}</div></td>
+        const safeDestHtml = escapeHtml(dest);
+        const safeDestJs = escapeJsDoubleQuoted(dest);
+
+        nsRows += `<tr class="clickable${hasBol ? ' row-bol' : ''}" onclick='openDetail("${safeDestJs}")'>
+          <td><div class="store-name">${safeDestHtml}</div></td>
           <td><div class="badge-alerts">${alerts || '<span class="badge neutral">—</span>'}</div></td>
           <td class="mono">${dp.length}</td>
           <td class="mono">${weight.toLocaleString()} lbs</td>
-          <td style="text-align:right;color:${hasBol ? 'var(--success)' : 'var(--text3)'};font-size:12px;font-weight:500">View →</td>
+          <td style="text-align:right;color:var(--${hasBol ? 'success' : 'text3'});font-size:12px;font-weight:500">View →</td>
         </tr>`;
       });
       if (nsRows) {
@@ -1112,22 +1116,26 @@
         const hasBol = bc > 0;
         if (dashFilter === 'alerts' && !hasAlerts) return;
         if (dashFilter === 'bol' && !hasBol) return;
+
         const weight = sp.reduce((s, p) => s + (Number(p.weight) || 0), 0);
         const alerts = buildAlertBadges(sp, bc);
         const lastRouted = getLastRouted(sp, storeName);
         const canOpen = sp.length > 0;
-        rows += `<tr class="clickable${hasBol ? ' row-bol' : ''}" onclick="${canOpen ? `openDetail(${JSON.stringify(storeName)})` : ''}" style="${canOpen ? '' : 'opacity:0.55;cursor:default'}">
+        const safeStoreHtml = escapeHtml(storeName);
+        const safeStoreJs = escapeJsDoubleQuoted(storeName);
+
+        rows += `<tr class="clickable${hasBol ? ' row-bol' : ''}" onclick='${canOpen ? `openDetail("${safeStoreJs}")` : ''}' style="${canOpen ? '' : 'opacity:0.55;cursor:default'}">
           <td>
             <div style="display:flex;align-items:center;gap:8px">
-              <input type="checkbox" class="dash-ship-cb" data-store="${storeName}" style="accent-color:var(--accent);width:14px;height:14px;flex-shrink:0" onclick="event.stopPropagation()">
-              <div class="store-name">${storeName}</div>
+              <input type="checkbox" class="dash-ship-cb" data-store="${safeStoreHtml}" style="accent-color:var(--accent);width:14px;height:14px;flex-shrink:0" onclick="event.stopPropagation()" ${canOpen ? '' : 'disabled'}>
+              <div class="store-name">${safeStoreHtml}</div>
             </div>
           </td>
           <td><div class="badge-alerts">${alerts || '<span class="badge neutral">—</span>'}</div></td>
           <td class="mono">${sp.length || '<span style="color:var(--text3)">0</span>'}</td>
           <td class="mono">${weight > 0 ? weight.toLocaleString() + ' lbs' : '<span style="color:var(--text3)">0 lbs</span>'}</td>
           <td>${lastRouted ? `<span class="date-chip">${lastRouted}</span>` : '<span class="date-none">—</span>'}</td>
-          <td style="text-align:right;color:${hasBol ? 'var(--accent)' : 'var(--text3)'};font-size:12px;font-weight:500">${canOpen ? 'View →' : ''}</td>
+          <td style="text-align:right;color:var(--${hasBol ? 'accent' : 'text3'});font-size:12px;font-weight:500">${sp.length ? 'View →' : ''}</td>
         </tr>`;
       });
       return rows || '<tr><td colspan="6" class="empty">No entries match this filter</td></tr>';
@@ -1162,8 +1170,11 @@
         </div>`;
     }
 
-    document.getElementById('dashboard-table-wrap').innerHTML =
-      html || '<div class="empty">No pallets found</div>';
+    document.getElementById('dashboard-table-wrap').innerHTML = html || '<div class="empty">No pallets found</div>';
+
+    const anyChecked = document.querySelectorAll('.dash-ship-cb:checked').length > 0;
+    const btn = document.getElementById('bulk-ship-btn');
+    if (btn) btn.style.display = anyChecked ? 'inline-flex' : 'none';
   }
 
   function buildAlertBadges(pallets, bolCount) {
