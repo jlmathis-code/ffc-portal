@@ -233,7 +233,7 @@
   <aside class="sidebar">
     <div class="sidebar-logo">
       <div class="wordmark">FFC Pallet Portal <span class="logo-v">v2</span></div>
-      <div class="sub">Scheels Fulfillment Center</div>
+      <div class="sub">Scheels Supply Chain</div>
     </div>
 
     <div class="nav-section">Workspace</div>
@@ -983,23 +983,22 @@
     const wrap = document.getElementById('dashboard-table-wrap');
     wrap.innerHTML = '<div class="loading">Loading pallets...</div>';
     try {
-      wrap.innerHTML = '<div class="loading">Step 1: querying pallets...</div>';
       // Load active pallets
       const snap = await getDocs(query(collection(db, PALLETS), orderBy('createdAt', 'desc')));
       allPallets = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-      wrap.innerHTML = `<div class="loading">Step 2: loaded ${allPallets.length} pallets, querying archive...</div>`;
-
-      // Build archive BOL date index (most recent bolDate per store)
+      // Build archive BOL date index — non-blocking, runs in background
       allArchiveBolDates = {};
-      const archSnap = await getDocs(collection(db, ARCHIVE));
-      archSnap.docs.forEach(d => {
-        const data = d.data();
-        if (!data.store || !data.bol || !data.bolDate) return;
-        const seconds = data.bolDate?.seconds || 0;
-        if (!allArchiveBolDates[data.store] || seconds > allArchiveBolDates[data.store]) {
-          allArchiveBolDates[data.store] = seconds;
-        }
-      });
+      getDocs(collection(db, ARCHIVE)).then(archSnap => {
+        archSnap.docs.forEach(d => {
+          const data = d.data();
+          if (!data.store || !data.bol || !data.bolDate) return;
+          const seconds = data.bolDate?.seconds || 0;
+          if (!allArchiveBolDates[data.store] || seconds > allArchiveBolDates[data.store]) {
+            allArchiveBolDates[data.store] = seconds;
+          }
+        });
+        renderDashboard(); // re-render once archive data is loaded
+      }).catch(e => console.warn('Archive load skipped:', e.message));
 
       try {
         renderDashboard();
