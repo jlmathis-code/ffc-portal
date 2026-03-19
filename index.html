@@ -1377,21 +1377,39 @@
   window.saveAllBols = async function() {
     const inputs = document.querySelectorAll('.bol-input');
     if (!inputs.length) return;
+  
     Swal.fire({ title: 'Saving BOLs...', didOpen: () => Swal.showLoading() });
+  
     const batch = writeBatch(db);
+  
     inputs.forEach(input => {
       const val = input.value.trim();
       const ref = doc(db, PALLETS, input.dataset.id);
-      if (val) batch.update(ref, { bol: val, bolDate: serverTimestamp() });
+  
+      batch.update(ref, {
+        bol: val,
+        bolDate: val ? serverTimestamp() : null
+      });
     });
+  
     await batch.commit();
+  
     // Update local state
     inputs.forEach(input => {
       const val = input.value.trim();
       const p = allPallets.find(x => x.id === input.dataset.id);
-      if (p && val) { p.bol = val; }
+      if (p) {
+        p.bol = val;
+        p.bolDate = val ? new Date() : null;
+      }
     });
-    Swal.fire({ title: 'Saved!', icon: 'success', timer: 1500, showConfirmButton: false });
+  
+    Swal.fire({
+      title: 'Saved!',
+      icon: 'success',
+      timer: 1500,
+      showConfirmButton: false
+    });
   };
 
   window.saveAllHazmat = async function() {
