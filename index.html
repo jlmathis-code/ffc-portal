@@ -233,7 +233,7 @@
   <aside class="sidebar">
     <div class="sidebar-logo">
       <div class="wordmark">FFC Pallet Portal <span class="logo-v">v2</span></div>
-      <div class="sub">Scheels Supply Chain</div>
+      <div class="sub">Scheels Fulfillment Center</div>
     </div>
 
     <div class="nav-section">Workspace</div>
@@ -980,11 +980,14 @@
   // DASHBOARD
   // ════════════════════════════════
   window.loadDashboard = async function() {
-    document.getElementById('dashboard-table-wrap').innerHTML = '<div class="loading">Loading pallets...</div>';
+    const wrap = document.getElementById('dashboard-table-wrap');
+    wrap.innerHTML = '<div class="loading">Loading pallets...</div>';
     try {
+      wrap.innerHTML = '<div class="loading">Step 1: querying pallets...</div>';
       // Load active pallets
       const snap = await getDocs(query(collection(db, PALLETS), orderBy('createdAt', 'desc')));
       allPallets = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      wrap.innerHTML = `<div class="loading">Step 2: loaded ${allPallets.length} pallets, querying archive...</div>`;
 
       // Build archive BOL date index (most recent bolDate per store)
       allArchiveBolDates = {};
