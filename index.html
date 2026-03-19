@@ -1802,9 +1802,13 @@
   // ════════════════════════════════
   window.sendReportNow = async function() {
     const btn = document.getElementById('send-report-btn');
+    // Get recipient count for confirmation
+    const recipSnap = await getDocs(collection(db, 'emailRecipients'));
+    const recipCount = recipSnap.size;
+    const recipLabel = recipCount === 1 ? '1 recipient' : `${recipCount} recipients`;
     const result = await Swal.fire({
       title: 'Send Pallet Report?',
-      html: 'This will email the current active pallet list to <strong>jlmathis@scheels.com</strong>',
+      html: `This will email the current active pallet list to <strong>${recipLabel}</strong>`,
       icon: 'question', showCancelButton: true,
       confirmButtonColor: '#b03030', confirmButtonText: 'Send Now'
     });
