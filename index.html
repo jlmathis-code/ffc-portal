@@ -982,13 +982,25 @@
   window.loadDashboard = async function() {
     const wrap = document.getElementById('dashboard-table-wrap');
     wrap.innerHTML = '<div class="loading">Loading pallets...</div>';
+
     try {
-      // Load active pallets
-      const snap = await getDocs(query(collection(db, PALLETS), orderBy('createdAt', 'desc')));
-      allPallets = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-      // Build archive BOL date index — non-blocking, runs in background
+      let palletSnap;
+
+      try {
+        palletSnap = await getDocs(query(collection(db, PALLETS), orderBy('createdAt', 'desc')));
+      } catch (orderedErr) {
+        console.warn('Ordered pallet query failed, falling back to unordered fetch:', orderedErr.message);
+        palletSnap = await getDocs(collection(db, PALLETS));
+      }
+
+      allPallets = palletSnap.docs
+        .map(d => ({ id: d.id, ...d.data() }))
+        .sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
+
       allArchiveBolDates = {};
-      getDocs(collection(db, ARCHIVE)).then(archSnap => {
+
+      try {
+        const archSnap = await getDocs(collection(db, ARCHIVE));
         archSnap.docs.forEach(d => {
           const data = d.data();
           if (!data.store || !data.bol || !data.bolDate) return;
@@ -997,75 +1009,78 @@
             allArchiveBolDates[data.store] = seconds;
           }
         });
-        renderDashboard(); // re-render once archive data is loaded
-      }).catch(e => console.warn('Archive load skipped:', e.message));
-
-      try {
-        renderDashboard();
-      } catch(re) {
-        document.getElementById('dashboard-table-wrap').innerHTML = `<div class="empty" style="color:var(--danger)">Render error: ${re.message}<br><small>${re.stack}</small></div>`;
-        console.error('renderDashboard error:', re);
+      } catch (archErr) {
+        console.warn('Archive load skipped:', archErr.message);
       }
-    } catch(e) {
-      document.getElementById('dashboard-table-wrap').innerHTML = `<div class="empty" style="color:var(--danger)">Error loading data: ${e.message}</div>`;
+
+      renderDashboard();
+    } catch (e) {
+      wrap.innerHTML = `<div class="empty" style="color:var(--danger)">Error loading data: ${e.message}</div>`;
+      console.error('loadDashboard error:', e);
     }
   };
 
   function renderDashboard() {
-    const pallets = allPallets;
+    const pallets = Array.isArray(allPallets) ? allPallets : [];
     const storePallets = {};
+
     pallets.forEach(p => {
       const s = p.store || 'Unknown';
       if (!storePallets[s]) storePallets[s] = [];
       storePallets[s].push(p);
     });
 
-    // Stats
-    const storeList = Object.keys(storePallets).filter(s => storePallets[s].some(p => p.type !== 'other'));
+    const storeList = Object.keys(storePallets).filter(s =>
+      storePallets[s].some(p => p.type !== 'other')
+    );
     const totalWeight = pallets.reduce((sum, p) => sum + (Number(p.weight) || 0), 0);
-    const bolCount = pallets.filter(p => p.bol && p.bol.trim()).length;
-    const bolStores = storeList.filter(s => storePallets[s].some(p => p.bol && p.bol.trim())).length;
-    const alertCount = storeList.filter(s => storePallets[s].some(p => p.priority || p.overDim)).length;
+    const bolCount = pallets.filter(p => p.bol && String(p.bol).trim()).length;
+    const bolStores = storeList.filter(s =>
+      storePallets[s].some(p => p.bol && String(p.bol).trim())
+    ).length;
+    const alertCount = storeList.filter(s =>
+      storePallets[s].some(p => p.priority || p.overDim)
+    ).length;
 
     document.getElementById('stat-stores').textContent = storeList.length;
     document.getElementById('stat-stores-sub').innerHTML = `<span class="stat-dot" style="background:var(--accent)"></span>${alertCount} with alerts`;
     document.getElementById('stat-pallets').textContent = pallets.length;
-    document.getElementById('stat-pallets-sub').innerHTML = `<span class="stat-dot" style="background:var(--success)"></span>${pallets.filter(p=>p.ready).length} ready to ship`;
+    document.getElementById('stat-pallets-sub').innerHTML = `<span class="stat-dot" style="background:var(--success)"></span>${pallets.filter(p => p.ready).length} ready to ship`;
     document.getElementById('stat-bols').textContent = bolCount;
     document.getElementById('stat-bols-sub').innerHTML = `<span class="stat-dot" style="background:var(--success)"></span>across ${bolStores} stores`;
-    document.getElementById('stat-weight').textContent = totalWeight >= 1000 ? (totalWeight/1000).toFixed(1)+'k' : totalWeight.toLocaleString();
+    document.getElementById('stat-weight').textContent = totalWeight >= 1000 ? (totalWeight / 1000).toFixed(1) + 'k' : totalWeight.toLocaleString();
 
-    // BOL banner
     const bolBtn = document.getElementById('bol-banner-btn');
-    // This is handled separately by checkBolFiles()
+    if (bolBtn && typeof checkBolFiles === 'function') {
+      // handled elsewhere
+    }
 
-    // Build table
-    const bottomStores = [];
-    const regularStores = allStores.filter(s => !bottomStores.includes(s) && storePallets[s]);
-    const bottomFiltered = bottomStores.filter(s => storePallets[s]);
-    const orderedStores = [...regularStores, ...bottomFiltered];
-    const outboundDests = [...new Set(pallets.filter(p => p.type === 'other').map(p => p.store))].sort();
+    const outboundDests = [...new Set(
+      pallets
+        .filter(p => p.type === 'other')
+        .map(p => p.store)
+        .filter(Boolean)
+    )].sort();
 
     let html = '';
 
-    // ── Non-Store Table
     if (outboundDests.length) {
       let nsRows = '';
       outboundDests.forEach(dest => {
         const dp = storePallets[dest] || [];
-        const bc = dp.filter(p => p.bol && p.bol.trim()).length;
+        const bc = dp.filter(p => p.bol && String(p.bol).trim()).length;
         const hasAlerts = dp.some(p => p.priority || p.overDim);
         const hasBol = bc > 0;
         if (dashFilter === 'alerts' && !hasAlerts) return;
         if (dashFilter === 'bol' && !hasBol) return;
-        const weight = dp.reduce((s,p) => s+(Number(p.weight)||0), 0);
+        const weight = dp.reduce((s, p) => s + (Number(p.weight) || 0), 0);
         const alerts = buildAlertBadges(dp, bc);
-        nsRows += `<tr class="clickable${hasBol?' row-bol':''}" onclick="openDetail('${dest}')">
+        nsRows += `<tr class="clickable${hasBol ? ' row-bol' : ''}" onclick="openDetail(${JSON.stringify(dest)})">
           <td><div class="store-name">${dest}</div></td>
           <td><div class="badge-alerts">${alerts || '<span class="badge neutral">—</span>'}</div></td>
           <td class="mono">${dp.length}</td>
           <td class="mono">${weight.toLocaleString()} lbs</td>
-          <td style="text-align:right;color:var(--${hasBol?'success':'text3'});font-size:12px;font-weight:500">View →</td>
+          <td style="text-align:right;color:${hasBol ? 'var(--success)' : 'var(--text3)'};font-size:12px;font-weight:500">View →</td>
         </tr>`;
       });
       if (nsRows) {
@@ -1084,25 +1099,24 @@
       }
     }
 
-    // ── Store & Warehouse Tables
     const storeNames = allStoreObjects.filter(s => s.storeType !== 'warehouse').map(s => s.name);
     const warehouseNames = allStoreObjects.filter(s => s.storeType === 'warehouse').map(s => s.name);
-    // Fallback: if allStoreObjects not populated, use allStores
-    const activeStoreList = storeNames.length ? storeNames : allStores;
+    const activeStoreList = storeNames.length ? storeNames : (Array.isArray(allStores) ? allStores : []);
 
     const buildRows = (names) => {
       let rows = '';
       names.forEach(storeName => {
         const sp = storePallets[storeName] || [];
-        const bc = sp.filter(p => p.bol && p.bol.trim()).length;
+        const bc = sp.filter(p => p.bol && String(p.bol).trim()).length;
         const hasAlerts = sp.some(p => p.priority || p.overDim);
         const hasBol = bc > 0;
         if (dashFilter === 'alerts' && !hasAlerts) return;
         if (dashFilter === 'bol' && !hasBol) return;
-        const weight = sp.reduce((s,p) => s+(Number(p.weight)||0), 0);
+        const weight = sp.reduce((s, p) => s + (Number(p.weight) || 0), 0);
         const alerts = buildAlertBadges(sp, bc);
         const lastRouted = getLastRouted(sp, storeName);
-        rows += `<tr class="clickable${hasBol?' row-bol':''}" onclick="openDetail('${storeName}')" style="${sp.length?'':'opacity:0.55;cursor:default'}">
+        const canOpen = sp.length > 0;
+        rows += `<tr class="clickable${hasBol ? ' row-bol' : ''}" onclick="${canOpen ? `openDetail(${JSON.stringify(storeName)})` : ''}" style="${canOpen ? '' : 'opacity:0.55;cursor:default'}">
           <td>
             <div style="display:flex;align-items:center;gap:8px">
               <input type="checkbox" class="dash-ship-cb" data-store="${storeName}" style="accent-color:var(--accent);width:14px;height:14px;flex-shrink:0" onclick="event.stopPropagation()">
@@ -1111,9 +1125,9 @@
           </td>
           <td><div class="badge-alerts">${alerts || '<span class="badge neutral">—</span>'}</div></td>
           <td class="mono">${sp.length || '<span style="color:var(--text3)">0</span>'}</td>
-          <td class="mono">${weight>0?weight.toLocaleString()+' lbs':'<span style="color:var(--text3)">0 lbs</span>'}</td>
+          <td class="mono">${weight > 0 ? weight.toLocaleString() + ' lbs' : '<span style="color:var(--text3)">0 lbs</span>'}</td>
           <td>${lastRouted ? `<span class="date-chip">${lastRouted}</span>` : '<span class="date-none">—</span>'}</td>
-          <td style="text-align:right;color:var(--${hasBol?'accent':'text3'});font-size:12px;font-weight:500">${sp.length?'View →':''}</td>
+          <td style="text-align:right;color:${hasBol ? 'var(--accent)' : 'var(--text3)'};font-size:12px;font-weight:500">${canOpen ? 'View →' : ''}</td>
         </tr>`;
       });
       return rows || '<tr><td colspan="6" class="empty">No entries match this filter</td></tr>';
@@ -1148,7 +1162,8 @@
         </div>`;
     }
 
-    document.getElementById('dashboard-table-wrap').innerHTML = html || '<div class="empty">No pallets found</div>';
+    document.getElementById('dashboard-table-wrap').innerHTML =
+      html || '<div class="empty">No pallets found</div>';
   }
 
   function buildAlertBadges(pallets, bolCount) {
