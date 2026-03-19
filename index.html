@@ -1725,7 +1725,8 @@ async function loadBolFiles() {
     } catch(e) {
       container.innerHTML = '<div class="empty" style="color:var(--danger)">Could not load BOL files: ' + e.message + '</div>';
     }
-  };
+  }
+};
 
   function renderBolFiles(files) {
     const container = document.getElementById('bol-files-list');
