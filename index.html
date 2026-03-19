@@ -1710,6 +1710,13 @@ async function refreshBolBadge() {
 
 async function loadBolFiles() {
   const container = document.getElementById('bol-files-list');
+  const titleEl = document.getElementById('bol-files-title');
+
+  if (!container) {
+    console.error('BOL loader: #bol-files-list not found');
+    return;
+  }
+
   container.innerHTML = '<div class="loading">Loading files...</div>';
 
   try {
@@ -1746,12 +1753,18 @@ window.loadBolFiles = loadBolFiles;
 
 function renderBolFiles(files) {
   const container = document.getElementById('bol-files-list');
+  const titleEl = document.getElementById('bol-files-title');
   const navPill = document.getElementById('nav-bol-count');
   const bannerBtn = document.getElementById('bol-banner-btn');
 
+  if (!container) {
+    console.error('BOL renderer: #bol-files-list not found');
+    return;
+  }
+
   if (!files.length) {
     container.innerHTML = '<div class="empty">No BOL files waiting to download</div>';
-    document.getElementById('bol-files-title').textContent = 'Waiting to Download';
+    if (titleEl) titleEl.textContent = 'Waiting to Download';
     if (navPill) navPill.style.display = 'none';
     if (bannerBtn) bannerBtn.style.display = 'none';
     return;
@@ -1767,8 +1780,9 @@ function renderBolFiles(files) {
     bannerBtn.style.display = 'inline-flex';
   }
 
-  document.getElementById('bol-files-title').textContent =
-    'Waiting to Download (' + files.length + ')';
+  if (titleEl) {
+    titleEl.textContent = 'Waiting to Download (' + files.length + ')';
+  }
 
   container.innerHTML = files.map(f => `
     <div class="bol-file-item">
