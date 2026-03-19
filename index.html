@@ -1148,6 +1148,7 @@
         </div>`;
     }
 
+    document.getElementById('dashboard-table-wrap').innerHTML = html || '<div class="empty">No pallets found</div>';
   }
 
   function buildAlertBadges(pallets, bolCount) {
