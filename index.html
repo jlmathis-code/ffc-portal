@@ -1081,7 +1081,7 @@
     const storeNames = allStoreObjects.filter(s => s.storeType !== 'warehouse').map(s => s.name);
     const warehouseNames = allStoreObjects.filter(s => s.storeType === 'warehouse').map(s => s.name);
     // Fallback: if allStoreObjects not populated, use allStores
-    const storeList = storeNames.length ? storeNames : allStores;
+    const activeStoreList = storeNames.length ? storeNames : allStores;
 
     const buildRows = (names) => {
       let rows = '';
@@ -1122,7 +1122,7 @@
           <thead><tr>
             <th>Store</th><th>Alerts</th><th>Count</th><th>Total Weight</th><th>Last Routed</th><th></th>
           </tr></thead>
-          <tbody>${buildRows(storeList)}</tbody>
+          <tbody>${buildRows(activeStoreList)}</tbody>
         </table>
       </div>`;
 
