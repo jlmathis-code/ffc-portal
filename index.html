@@ -221,6 +221,37 @@
     .text-muted { color: var(--text3); }
     .badge-alerts { display: flex; flex-wrap: wrap; gap: 4px; }
 
+
+    /* ── REPORTS ── */
+    .report-grid-6 { display:grid; grid-template-columns:repeat(6,minmax(0,1fr)); gap:14px; margin-bottom:24px; }
+    .report-grid-2 { display:grid; grid-template-columns:1.2fr 1fr; gap:18px; margin-bottom:24px; }
+    .report-grid-2-eq { display:grid; grid-template-columns:1fr 1fr; gap:18px; margin-bottom:24px; }
+    .report-card { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-lg); padding:18px; }
+    .report-card-title { font-size:10px; font-weight:600; color:var(--text3); letter-spacing:.1em; text-transform:uppercase; margin-bottom:14px; }
+    .report-kpi { font-size:24px; font-weight:300; color:var(--text); font-family:'DM Mono', monospace; letter-spacing:-0.02em; }
+    .report-sub { font-size:11px; color:var(--text3); margin-top:6px; }
+    .report-bars { display:flex; flex-direction:column; gap:10px; }
+    .report-bar-row { display:grid; grid-template-columns:70px 1fr 52px; gap:10px; align-items:center; }
+    .report-bar-label { font-size:12px; color:var(--text2); font-weight:500; }
+    .report-bar-track { height:12px; background:var(--surface2); border-radius:999px; overflow:hidden; border:1px solid var(--border); }
+    .report-bar-fill { height:100%; background:linear-gradient(90deg, #c8860a, #e6b74a); border-radius:999px; }
+    .report-bar-fill.success { background:linear-gradient(90deg, #2e7d52, #69b287); }
+    .report-bar-fill.danger { background:linear-gradient(90deg, #c0392b, #de7c72); }
+    .report-bar-fill.purple { background:linear-gradient(90deg, #6b46c1, #a283e2); }
+    .report-bar-value { font-size:12px; color:var(--text2); text-align:right; font-family:'DM Mono', monospace; }
+    .metric-chip-row { display:flex; flex-wrap:wrap; gap:8px; margin-top:8px; }
+    .metric-chip { background:var(--surface2); border:1px solid var(--border); color:var(--text2); padding:5px 8px; border-radius:999px; font-size:11px; font-weight:500; }
+    .metric-chip.warn { background:var(--warn-bg); border-color:var(--warn-border); color:var(--warn); }
+    .metric-chip.success { background:var(--success-bg); border-color:var(--success-border); color:var(--success); }
+    .metric-chip.danger { background:var(--danger-bg); border-color:var(--danger-border); color:var(--danger); }
+    @media (max-width: 1280px) {
+      .report-grid-6 { grid-template-columns:repeat(3,minmax(0,1fr)); }
+      .report-grid-2, .report-grid-2-eq { grid-template-columns:1fr; }
+    }
+    @media (max-width: 760px) {
+      .report-grid-6 { grid-template-columns:repeat(2,minmax(0,1fr)); }
+    }
+
     /* SweetAlert overrides */
     .swal2-container { z-index: 99999 !important; }
   </style>
@@ -233,13 +264,17 @@
   <aside class="sidebar">
     <div class="sidebar-logo">
       <div class="wordmark">FFC Pallet Portal <span class="logo-v">v2</span></div>
-      <div class="sub">Scheels Fulfillment Center</div>
+      <div class="sub">Scheels Supply Chain</div>
     </div>
 
     <div class="nav-section">Workspace</div>
     <div class="nav-item active" onclick="showPage('dashboard')">
       <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1" y="1" width="6" height="6" rx="1"/><rect x="9" y="1" width="6" height="6" rx="1"/><rect x="1" y="9" width="6" height="6" rx="1"/><rect x="9" y="9" width="6" height="6" rx="1"/></svg>
       Dashboard
+    </div>
+    <div class="nav-item" onclick="showPage('reports')">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 13h12"/><path d="M4 11V7"/><path d="M8 11V3"/><path d="M12 11V5"/></svg>
+      Reports
     </div>
     <div class="nav-item" onclick="showPage('entry')">
       <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="2" width="12" height="12" rx="1.5"/><path d="M8 5v6M5 8h6"/></svg>
@@ -339,6 +374,26 @@
 
         <div id="dashboard-table-wrap">
           <div class="loading">Loading pallets...</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── REPORTS ── -->
+    <div id="page-reports" class="page">
+      <div class="topbar">
+        <div class="topbar-title">Reports & Metrics</div>
+        <div class="topbar-actions">
+          <div class="tabs">
+            <div class="tab" onclick="setReportRange(this,7)">7 Days</div>
+            <div class="tab active" onclick="setReportRange(this,14)">14 Days</div>
+            <div class="tab" onclick="setReportRange(this,30)">30 Days</div>
+          </div>
+          <button class="btn" onclick="loadReports()">↻ Refresh</button>
+        </div>
+      </div>
+      <div class="page-scroll">
+        <div id="reports-wrap">
+          <div class="loading">Loading reports...</div>
         </div>
       </div>
     </div>
@@ -913,6 +968,8 @@
   let currentDetailStore = null;
   let stagedBolFiles = [];
   let dashFilter = 'all';
+  let reportsRangeDays = 14;
+  let allArchiveDocs = [];
 
   // ════════════════════════════════
   // NAVIGATION
@@ -921,15 +978,17 @@
     document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
     document.getElementById('page-' + id).classList.add('active');
     document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
-    const map = { dashboard:0, entry:1, outbound:2, gunpowder:3, bols:4, archive:5, bugs:6, admin:6 };
+    const map = { dashboard:0, reports:1, entry:2, outbound:3, gunpowder:4, bols:5, archive:6, bugs:7, admin:8 };
     const items = document.querySelectorAll('.nav-item');
     if (map[id] !== undefined) items[map[id]].classList.add('active');
 
     if (id === 'dashboard') loadDashboard();
+    if (id === 'reports') loadReports();
     if (id === 'gunpowder') loadGunPowder();
     if (id === 'bols') loadBolFiles();
     if (id === 'entry' || id === 'outbound') populateStoreSelects();
     if (id === 'archive') populateArchiveStores();
+    if (id === 'admin') { loadStoreManager(); loadRecipients(); }
     if (id === 'bugs') { document.getElementById('bug-date').value = new Date().toISOString().split('T')[0]; }
   };
 
@@ -1912,6 +1971,320 @@
     setTimeout(() => { btn.textContent = orig; btn.classList.remove('success'); }, 1500);
   };
 
+
+
+  // ════════════════════════════════
+  // REPORTS
+  // ════════════════════════════════
+  function startOfDay(d) {
+    const x = new Date(d);
+    x.setHours(0,0,0,0);
+    return x;
+  }
+
+  function timestampToDate(ts) {
+    if (!ts) return null;
+    if (ts instanceof Date) return ts;
+    if (typeof ts?.seconds === 'number') return new Date(ts.seconds * 1000);
+    const parsed = new Date(ts);
+    return isNaN(parsed) ? null : parsed;
+  }
+
+  function daysOpenFrom(pallet) {
+    const dt = timestampToDate(pallet.createdAt);
+    if (!dt) return null;
+    return Math.max(0, Math.floor((Date.now() - dt.getTime()) / 86400000));
+  }
+
+  function formatShortDate(d) {
+    return new Date(d).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+  }
+
+  async function ensureArchiveDocsLoaded() {
+    if (Array.isArray(allArchiveDocs) && allArchiveDocs.length) return;
+    try {
+      const snap = await getDocs(collection(db, ARCHIVE));
+      allArchiveDocs = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    } catch (e) {
+      console.warn('Archive docs unavailable for reports:', e.message);
+      allArchiveDocs = [];
+    }
+  }
+
+  window.setReportRange = function(el, days) {
+    document.querySelectorAll('#page-reports .tabs .tab').forEach(t => t.classList.remove('active'));
+    el.classList.add('active');
+    reportsRangeDays = days;
+    loadReports();
+  };
+
+  window.loadReports = async function() {
+    const wrap = document.getElementById('reports-wrap');
+    wrap.innerHTML = '<div class="loading">Loading reports...</div>';
+    try {
+      if (!Array.isArray(allPallets) || !allPallets.length) {
+        await loadDashboard();
+      }
+      await ensureArchiveDocsLoaded();
+      renderReports();
+    } catch (e) {
+      wrap.innerHTML = `<div class="empty" style="color:var(--danger)">Error loading reports: ${escapeHtml(e.message)}</div>`;
+      console.error('loadReports error:', e);
+    }
+  };
+
+  function renderReports() {
+    const wrap = document.getElementById('reports-wrap');
+    const active = Array.isArray(allPallets) ? allPallets : [];
+    const archive = Array.isArray(allArchiveDocs) ? allArchiveDocs : [];
+    const rangeDays = reportsRangeDays || 14;
+    const today = startOfDay(new Date());
+    const startDate = new Date(today);
+    startDate.setDate(startDate.getDate() - (rangeDays - 1));
+
+    const activeStoreMap = {};
+    active.forEach(p => {
+      const s = p.store || 'Unknown';
+      (activeStoreMap[s] ||= []).push(p);
+    });
+
+    const openStores = Object.keys(activeStoreMap).filter(s => activeStoreMap[s].some(p => p.type !== 'other'));
+    const readyCount = active.filter(p => p.ready).length;
+    const missingBol = active.filter(p => !String(p.bol || '').trim()).length;
+    const alertCount = active.filter(p => p.priority || p.overDim).length;
+    const totalWeight = active.reduce((sum, p) => sum + (Number(p.weight) || 0), 0);
+    const agedPallets = active.map(daysOpenFrom).filter(v => v !== null);
+    const avgOpenDays = agedPallets.length ? (agedPallets.reduce((a,b) => a+b, 0) / agedPallets.length) : 0;
+
+    const agingBuckets = [
+      { label: '0–1', count: 0 },
+      { label: '2–3', count: 0 },
+      { label: '4–7', count: 0 },
+      { label: '8+', count: 0 }
+    ];
+    active.forEach(p => {
+      const days = daysOpenFrom(p);
+      if (days === null) return;
+      if (days <= 1) agingBuckets[0].count++;
+      else if (days <= 3) agingBuckets[1].count++;
+      else if (days <= 7) agingBuckets[2].count++;
+      else agingBuckets[3].count++;
+    });
+    const maxAging = Math.max(1, ...agingBuckets.map(b => b.count));
+
+    const shippedTrend = [];
+    for (let i = 0; i < rangeDays; i++) {
+      const d = new Date(startDate);
+      d.setDate(d.getDate() + i);
+      const key = startOfDay(d).getTime();
+      shippedTrend.push({ date: new Date(d), key, count: 0, weight: 0 });
+    }
+    const trendMap = new Map(shippedTrend.map(r => [r.key, r]));
+    archive.forEach(p => {
+      const dt = timestampToDate(p.shippedAt || p.archivedAt || p.bolDate || p.createdAt);
+      if (!dt) return;
+      const key = startOfDay(dt).getTime();
+      const row = trendMap.get(key);
+      if (!row) return;
+      row.count += 1;
+      row.weight += Number(p.weight) || 0;
+    });
+    const maxShipCount = Math.max(1, ...shippedTrend.map(r => r.count));
+
+    const storeRows = openStores.map(store => {
+      const pallets = activeStoreMap[store] || [];
+      const openCount = pallets.length;
+      const ready = pallets.filter(p => p.ready).length;
+      const withBol = pallets.filter(p => String(p.bol || '').trim()).length;
+      const avgAge = (() => {
+        const vals = pallets.map(daysOpenFrom).filter(v => v !== null);
+        return vals.length ? (vals.reduce((a,b) => a+b,0) / vals.length) : 0;
+      })();
+      const alerts = pallets.filter(p => p.priority || p.overDim).length;
+      return {
+        store,
+        openCount,
+        ready,
+        bolPct: openCount ? Math.round((withBol / openCount) * 100) : 0,
+        avgAge,
+        alerts,
+        weight: pallets.reduce((s,p) => s + (Number(p.weight) || 0), 0)
+      };
+    }).sort((a,b) => b.openCount - a.openCount || b.alerts - a.alerts || b.avgAge - a.avgAge);
+
+    const exceptionRows = storeRows
+      .filter(r => r.openCount > 0 && (r.alerts > 0 || r.bolPct < 100 || r.avgAge >= 4))
+      .sort((a,b) => (b.alerts - a.alerts) || (b.avgAge - a.avgAge) || (a.bolPct - b.bolPct))
+      .slice(0, 12);
+
+    const oldestRows = active
+      .map(p => ({ ...p, age: daysOpenFrom(p) ?? -1 }))
+      .sort((a,b) => b.age - a.age)
+      .slice(0, 10);
+
+    const shippedTotal = shippedTrend.reduce((s, r) => s + r.count, 0);
+    const shippedWeight = shippedTrend.reduce((s, r) => s + r.weight, 0);
+
+    const reportHtml = `
+      <div class="report-grid-6">
+        <div class="report-card">
+          <div class="report-card-title">Open Pallets</div>
+          <div class="report-kpi">${active.length}</div>
+          <div class="report-sub">${openStores.length} active stores</div>
+        </div>
+        <div class="report-card">
+          <div class="report-card-title">Ready to Ship</div>
+          <div class="report-kpi">${readyCount}</div>
+          <div class="report-sub">${active.length ? Math.round((readyCount / active.length) * 100) : 0}% of active pallets</div>
+        </div>
+        <div class="report-card">
+          <div class="report-card-title">Missing BOL</div>
+          <div class="report-kpi">${missingBol}</div>
+          <div class="report-sub">${active.length ? Math.round((missingBol / active.length) * 100) : 0}% of active pallets</div>
+        </div>
+        <div class="report-card">
+          <div class="report-card-title">Alerts</div>
+          <div class="report-kpi">${alertCount}</div>
+          <div class="report-sub">Priority and OD combined</div>
+        </div>
+        <div class="report-card">
+          <div class="report-card-title">Avg Open Days</div>
+          <div class="report-kpi">${avgOpenDays.toFixed(1)}</div>
+          <div class="report-sub">Based on created date</div>
+        </div>
+        <div class="report-card">
+          <div class="report-card-title">Shipped (${rangeDays}d)</div>
+          <div class="report-kpi">${shippedTotal}</div>
+          <div class="report-sub">${shippedWeight.toLocaleString()} lbs archived</div>
+        </div>
+      </div>
+
+      <div class="report-grid-2">
+        <div class="report-card">
+          <div class="section-header" style="margin-bottom:14px">
+            <div class="section-title">Aging Buckets</div>
+            <div class="metric-chip-row">
+              <span class="metric-chip warn">${agingBuckets[3].count} older than 7 days</span>
+            </div>
+          </div>
+          <div class="report-bars">
+            ${agingBuckets.map((b, idx) => `
+              <div class="report-bar-row">
+                <div class="report-bar-label">${b.label} days</div>
+                <div class="report-bar-track"><div class="report-bar-fill ${idx === 3 ? 'danger' : idx === 2 ? 'purple' : ''}" style="width:${(b.count / maxAging) * 100}%"></div></div>
+                <div class="report-bar-value">${b.count}</div>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+
+        <div class="report-card">
+          <div class="section-header" style="margin-bottom:14px">
+            <div class="section-title">Shipping Trend</div>
+            <div class="metric-chip-row">
+              <span class="metric-chip success">${rangeDays} day window</span>
+            </div>
+          </div>
+          <div class="report-bars">
+            ${shippedTrend.map(r => `
+              <div class="report-bar-row">
+                <div class="report-bar-label">${formatShortDate(r.date)}</div>
+                <div class="report-bar-track"><div class="report-bar-fill success" style="width:${(r.count / maxShipCount) * 100}%"></div></div>
+                <div class="report-bar-value">${r.count}</div>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+      </div>
+
+      <div class="report-grid-2-eq">
+        <div class="report-card">
+          <div class="section-header">
+            <div class="section-title">Store Scorecard</div>
+            <div class="metric-chip-row">
+              <span class="metric-chip">${storeRows.length} stores ranked</span>
+            </div>
+          </div>
+          <div style="overflow-x:auto">
+            <table class="data-table">
+              <thead>
+                <tr><th>Store</th><th>Open</th><th>Ready</th><th>BOL %</th><th>Avg Days</th><th>Alerts</th></tr>
+              </thead>
+              <tbody>
+                ${storeRows.slice(0, 15).map(r => `
+                  <tr class="clickable" onclick='openDetail("${escapeJsDoubleQuoted(r.store)}");showPage("detail")'>
+                    <td style="font-weight:500">${escapeHtml(r.store)}</td>
+                    <td class="mono">${r.openCount}</td>
+                    <td class="mono">${r.ready}</td>
+                    <td class="mono">${r.bolPct}%</td>
+                    <td class="mono">${r.avgAge.toFixed(1)}</td>
+                    <td>${r.alerts ? `<span class="badge priority">${r.alerts}</span>` : '<span class="text-muted">—</span>'}</td>
+                  </tr>
+                `).join('') || '<tr><td colspan="6" class="empty">No active stores</td></tr>'}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="report-card">
+          <div class="section-header">
+            <div class="section-title">Exception Watchlist</div>
+            <div class="metric-chip-row">
+              <span class="metric-chip danger">Needs attention</span>
+            </div>
+          </div>
+          <div style="overflow-x:auto">
+            <table class="data-table">
+              <thead>
+                <tr><th>Store</th><th>Alerts</th><th>Missing BOL</th><th>Avg Days</th></tr>
+              </thead>
+              <tbody>
+                ${exceptionRows.map(r => `
+                  <tr class="clickable" onclick='openDetail("${escapeJsDoubleQuoted(r.store)}");showPage("detail")'>
+                    <td style="font-weight:500">${escapeHtml(r.store)}</td>
+                    <td>${r.alerts ? `<span class="badge priority">${r.alerts}</span>` : '<span class="text-muted">0</span>'}</td>
+                    <td class="mono">${r.openCount - Math.round((r.bolPct / 100) * r.openCount)}</td>
+                    <td class="mono">${r.avgAge.toFixed(1)}</td>
+                  </tr>
+                `).join('') || '<tr><td colspan="4" class="empty">No exceptions right now</td></tr>'}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <div class="report-card">
+        <div class="section-header">
+          <div class="section-title">Oldest Open Pallets</div>
+          <div class="metric-chip-row">
+            <span class="metric-chip warn">Top 10 aging pallets</span>
+            <span class="metric-chip">${totalWeight.toLocaleString()} lbs active</span>
+          </div>
+        </div>
+        <div style="overflow-x:auto">
+          <table class="data-table">
+            <thead>
+              <tr><th>Store</th><th>Pallet ID</th><th>Age</th><th>Status</th><th>Weight</th><th>Notes</th></tr>
+            </thead>
+            <tbody>
+              ${oldestRows.map(p => `
+                <tr class="clickable" onclick='openDetail("${escapeJsDoubleQuoted(p.store || 'Unknown')}");showPage("detail")'>
+                  <td style="font-weight:500">${escapeHtml(p.store || 'Unknown')}</td>
+                  <td class="mono">${escapeHtml(p.palletId || '—')}</td>
+                  <td class="mono">${p.age >= 0 ? p.age + 'd' : '—'}</td>
+                  <td><div class="badge-alerts">${buildAlertBadges([p], String(p.bol || '').trim() ? 1 : 0) || '<span class="text-muted">—</span>'}</div></td>
+                  <td class="mono">${(Number(p.weight) || 0).toLocaleString()} lbs</td>
+                  <td>${escapeHtml(p.notes || '—')}</td>
+                </tr>
+              `).join('') || '<tr><td colspan="6" class="empty">No active pallets</td></tr>'}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    `;
+
+    wrap.innerHTML = reportHtml;
+  }
 
   // ════════════════════════════════
   // EMAIL REPORT
