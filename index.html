@@ -1709,75 +1709,106 @@ async function refreshBolBadge() {
 }
 
 async function loadBolFiles() {
-  window.loadBolFiles = async function() {
-    const container = document.getElementById('bol-files-list');
-    container.innerHTML = '<div class="loading">Loading files...</div>';
-    try {
-      const pendingRef = ref(storage, BOL_PENDING_PATH);
-      const result = await listAll(pendingRef);
-      const files = await Promise.all(result.items.map(async item => {
+  const container = document.getElementById('bol-files-list');
+  container.innerHTML = '<div class="loading">Loading files...</div>';
+
+  try {
+    const pendingRef = ref(storage, BOL_PENDING_PATH);
+    const result = await listAll(pendingRef);
+
+    const files = await Promise.all(
+      result.items.map(async item => {
         const url = await getDownloadURL(item);
         let size = '';
-        try { const meta = await getMetadata(item); size = (meta.size / 1024).toFixed(0) + ' KB'; } catch(e) {}
-        return { name: item.name, url, fullPath: item.fullPath, size };
-      }));
-      renderBolFiles(files);
-    } catch(e) {
-      container.innerHTML = '<div class="empty" style="color:var(--danger)">Could not load BOL files: ' + e.message + '</div>';
-    }
-  }
-};
 
-  function renderBolFiles(files) {
-    const container = document.getElementById('bol-files-list');
-    const navPill = document.getElementById('nav-bol-count');
-    const bannerBtn = document.getElementById('bol-banner-btn');
-    if (!files.length) {
-      container.innerHTML = '<div class="empty">No BOL files waiting to download</div>';
-      document.getElementById('bol-files-title').textContent = 'Waiting to Download';
-      navPill.style.display = 'none';
-      bannerBtn.style.display = 'none';
-      return;
-    }
+        try {
+          const meta = await getMetadata(item);
+          size = (meta.size / 1024).toFixed(0) + ' KB';
+        } catch (e) {}
+
+        return {
+          name: item.name,
+          url,
+          fullPath: item.fullPath,
+          size
+        };
+      })
+    );
+
+    renderBolFiles(files);
+  } catch (e) {
+    container.innerHTML =
+      '<div class="empty" style="color:var(--danger)">Could not load BOL files: ' + e.message + '</div>';
+  }
+}
+
+window.loadBolFiles = loadBolFiles;
+
+function renderBolFiles(files) {
+  const container = document.getElementById('bol-files-list');
+  const navPill = document.getElementById('nav-bol-count');
+  const bannerBtn = document.getElementById('bol-banner-btn');
+
+  if (!files.length) {
+    container.innerHTML = '<div class="empty">No BOL files waiting to download</div>';
+    document.getElementById('bol-files-title').textContent = 'Waiting to Download';
+    if (navPill) navPill.style.display = 'none';
+    if (bannerBtn) bannerBtn.style.display = 'none';
+    return;
+  }
+
+  if (navPill) {
     navPill.textContent = files.length;
     navPill.style.display = 'inline-block';
+  }
+
+  if (bannerBtn) {
     bannerBtn.textContent = files.length + ' BOL' + (files.length > 1 ? 's' : '') + ' ready';
     bannerBtn.style.display = 'inline-flex';
-    document.getElementById('bol-files-title').textContent = 'Waiting to Download (' + files.length + ')';
-    container.innerHTML = files.map(f => `
-      <div class="bol-file-item">
-        <div class="bol-file-icon">PDF</div>
-        <div style="flex:1">
-          <div class="bol-file-name">${f.name}</div>
-          <div class="bol-file-meta">${f.size || ''}</div>
-        </div>
-        <a href="${f.url}" target="_blank" class="btn sm" style="color:var(--accent)">Open</a>
-        <button class="btn danger sm" onclick="deleteBolFile('${f.fullPath}','${f.name}')">Remove</button>
-      </div>`).join('');
   }
 
-  let stagedBols = [];
+  document.getElementById('bol-files-title').textContent =
+    'Waiting to Download (' + files.length + ')';
 
-  window.handleBolFileSelect = function() {
-    const input = document.getElementById('bol-file-input');
-    Array.from(input.files).forEach(f => { if (!stagedBols.find(e => e.name === f.name)) stagedBols.push(f); });
-    input.value = '';
-    renderStagedBols();
-  };
+  container.innerHTML = files.map(f => `
+    <div class="bol-file-item">
+      <div class="bol-file-icon">PDF</div>
+      <div style="flex:1">
+        <div class="bol-file-name">${f.name}</div>
+        <div class="bol-file-meta">${f.size || ''}</div>
+      </div>
+      <a href="${f.url}" target="_blank" class="btn sm" style="color:var(--accent)">Open</a>
+      <button class="btn danger sm" onclick="deleteBolFile('${f.fullPath}','${f.name}')">Remove</button>
+    </div>
+  `).join('');
+}
 
-  function renderStagedBols() {
-    const list = document.getElementById('staged-files-list');
-    const btn = document.getElementById('bol-upload-btn');
-    if (stagedBols.length) {
-      list.innerHTML = '<strong>Ready to upload:</strong><br>' + stagedBols.map(f => f.name).join('<br>');
-      list.style.display = 'block';
-      btn.style.display = 'inline-flex';
-    } else {
-      list.style.display = 'none';
-      btn.style.display = 'none';
-    }
+let stagedBols = [];
+
+window.handleBolFileSelect = function() {
+  const input = document.getElementById('bol-file-input');
+  Array.from(input.files).forEach(f => {
+    if (!stagedBols.find(e => e.name === f.name)) stagedBols.push(f);
+  });
+  input.value = '';
+  renderStagedBols();
+};
+
+function renderStagedBols() {
+  const list = document.getElementById('staged-files-list');
+  const btn = document.getElementById('bol-upload-btn');
+
+  if (stagedBols.length) {
+    list.innerHTML =
+      '<strong>Ready to upload:</strong><br>' +
+      stagedBols.map(f => f.name).join('<br>');
+    list.style.display = 'block';
+    btn.style.display = 'inline-flex';
+  } else {
+    list.style.display = 'none';
+    btn.style.display = 'none';
   }
-
+}
   window.triggerBolUpload = async function(e) {
     e.stopPropagation();
     if (!stagedBols.length) return;
