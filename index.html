@@ -233,7 +233,7 @@
   <aside class="sidebar">
     <div class="sidebar-logo">
       <div class="wordmark">FFC Pallet Portal <span class="logo-v">v2</span></div>
-      <div class="sub">Scheels Fulfillment Center</div>
+      <div class="sub">Scheels Supply Chain</div>
     </div>
 
     <div class="nav-section">Workspace</div>
@@ -998,7 +998,12 @@
         }
       });
 
-      renderDashboard();
+      try {
+        renderDashboard();
+      } catch(re) {
+        document.getElementById('dashboard-table-wrap').innerHTML = `<div class="empty" style="color:var(--danger)">Render error: ${re.message}<br><small>${re.stack}</small></div>`;
+        console.error('renderDashboard error:', re);
+      }
     } catch(e) {
       document.getElementById('dashboard-table-wrap').innerHTML = `<div class="empty" style="color:var(--danger)">Error loading data: ${e.message}</div>`;
     }
