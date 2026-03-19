@@ -671,18 +671,32 @@
           <div class="form-card-title">Add New Store or Warehouse</div>
           <div style="display:flex;gap:10px;align-items:flex-end">
             <div class="form-group" style="flex:1">
-              <label class="form-label">Store / Warehouse Name</label>
+              <label class="form-label">Name</label>
               <input class="form-input" id="new-store-name" type="text" placeholder="e.g. KC/42 or Denver Warehouse">
+            </div>
+            <div class="form-group" style="width:160px">
+              <label class="form-label">Type</label>
+              <select class="form-input" id="new-store-type">
+                <option value="store">Store</option>
+                <option value="warehouse">Warehouse</option>
+              </select>
             </div>
             <button class="btn primary" onclick="addNewStore()" style="margin-bottom:1px">Add</button>
           </div>
         </div>
         <div class="section-header">
-          <div class="section-title">Current Stores & Warehouses</div>
+          <div class="section-title">Current Stores</div>
           <span id="store-count-label" style="font-size:12px;color:var(--text3)"></span>
         </div>
         <div id="store-list-container">
           <div class="loading">Loading stores...</div>
+        </div>
+        <div class="section-header" style="margin-top:20px">
+          <div class="section-title">Current Warehouses</div>
+          <span id="warehouse-count-label" style="font-size:12px;color:var(--text3)"></span>
+        </div>
+        <div id="warehouse-list-container">
+          <div class="loading">Loading warehouses...</div>
         </div>
 
         <hr class="divider" style="margin:28px 0">
@@ -922,11 +936,14 @@
   // ════════════════════════════════
   // STORES
   // ════════════════════════════════
+  // allStores = array of {id, name, storeType} objects
+  let allStoreObjects = [];
+
   async function loadStores() {
     const snap = await getDocs(collection(db, STORES));
-    allStores = snap.docs.map(d => d.data().name).filter(Boolean).sort();
+    allStoreObjects = snap.docs.map(d => ({ id: d.id, name: d.data().name, storeType: d.data().storeType || 'store' })).filter(s => s.name).sort((a,b) => a.name.localeCompare(b.name));
+    allStores = allStoreObjects.map(s => s.name);
     if (!allStores.length) {
-      // Seed default stores if empty
       const defaults = [
         'AP/54','BL/86','CF/82','CH/26','CP/32','CS/22','DM/60','DS/6',
         'EA/40','EN/98','FA/64','GF/70','GK/84','IC/44','JO/92','KI/72',
@@ -935,8 +952,9 @@
         'TC/96','TU/28','WI/38'
       ];
       const batch = writeBatch(db);
-      defaults.forEach(name => batch.set(doc(collection(db, STORES)), { name }));
+      defaults.forEach(name => batch.set(doc(collection(db, STORES)), { name, storeType: 'store' }));
       await batch.commit();
+      allStoreObjects = defaults.map(name => ({ name, storeType: 'store' }));
       allStores = defaults;
     }
   }
@@ -1059,46 +1077,70 @@
       }
     }
 
-    // ── Store Table
-    let storeRows = '';
-    allStores.forEach(storeName => {
-      const sp = storePallets[storeName] || [];
-      const bc = sp.filter(p => p.bol && p.bol.trim()).length;
-      const hasAlerts = sp.some(p => p.priority || p.overDim);
-      const hasBol = bc > 0;
-      if (dashFilter === 'alerts' && !hasAlerts) return;
-      if (dashFilter === 'bol' && !hasBol) return;
-      const weight = sp.reduce((s,p) => s+(Number(p.weight)||0), 0);
-      const alerts = buildAlertBadges(sp, bc);
-      const lastRouted = getLastRouted(sp, storeName);
-      storeRows += `<tr class="clickable${hasBol?' row-bol':''}" onclick="${sp.length?`openDetail('${storeName}')`:'void(0)'}" style="${sp.length?'':'opacity:0.55;cursor:default'}">
-        <td><div class="store-name">${storeName}</div></td>
-        <td><div class="badge-alerts">${alerts || '<span class="badge neutral">—</span>'}</div></td>
-        <td class="mono">${sp.length || '<span style="color:var(--text3)">0</span>'}</td>
-        <td class="mono">${weight>0?weight.toLocaleString()+' lbs':'<span style="color:var(--text3)">0 lbs</span>'}</td>
-        <td>${lastRouted ? `<span class="date-chip">${lastRouted}</span>` : '<span class="date-none">—</span>'}</td>
-        <td style="text-align:right;color:var(--${hasBol?'success':'text3'});font-size:12px;font-weight:500">${sp.length?'View →':''}</td>
-      </tr>`;
-    });
+    // ── Store & Warehouse Tables
+    const storeNames = allStoreObjects.filter(s => s.storeType !== 'warehouse').map(s => s.name);
+    const warehouseNames = allStoreObjects.filter(s => s.storeType === 'warehouse').map(s => s.name);
+    // Fallback: if allStoreObjects not populated, use allStores
+    const storeList = storeNames.length ? storeNames : allStores;
 
-    if (!storeRows) storeRows = '<tr><td colspan="6" class="empty">No stores match this filter</td></tr>';
+    const buildRows = (names) => {
+      let rows = '';
+      names.forEach(storeName => {
+        const sp = storePallets[storeName] || [];
+        const bc = sp.filter(p => p.bol && p.bol.trim()).length;
+        const hasAlerts = sp.some(p => p.priority || p.overDim);
+        const hasBol = bc > 0;
+        if (dashFilter === 'alerts' && !hasAlerts) return;
+        if (dashFilter === 'bol' && !hasBol) return;
+        const weight = sp.reduce((s,p) => s+(Number(p.weight)||0), 0);
+        const alerts = buildAlertBadges(sp, bc);
+        const lastRouted = getLastRouted(sp, storeName);
+        rows += `<tr class="clickable${hasBol?' row-bol':''}" onclick="openDetail('${storeName}')" style="${sp.length?'':'opacity:0.55;cursor:default'}">
+          <td>
+            <div style="display:flex;align-items:center;gap:8px">
+              <input type="checkbox" class="dash-ship-cb" data-store="${storeName}" style="accent-color:var(--accent);width:14px;height:14px;flex-shrink:0" onclick="event.stopPropagation()">
+              <div class="store-name">${storeName}</div>
+            </div>
+          </td>
+          <td><div class="badge-alerts">${alerts || '<span class="badge neutral">—</span>'}</div></td>
+          <td class="mono">${sp.length || '<span style="color:var(--text3)">0</span>'}</td>
+          <td class="mono">${weight>0?weight.toLocaleString()+' lbs':'<span style="color:var(--text3)">0 lbs</span>'}</td>
+          <td>${lastRouted ? `<span class="date-chip">${lastRouted}</span>` : '<span class="date-none">—</span>'}</td>
+          <td style="text-align:right;color:var(--${hasBol?'accent':'text3'});font-size:12px;font-weight:500">${sp.length?'View →':''}</td>
+        </tr>`;
+      });
+      return rows || '<tr><td colspan="6" class="empty">No entries match this filter</td></tr>';
+    };
 
     html += `
-      <div>
-        <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
-          <span style="background:#c8860a;color:#fff;font-size:10px;font-weight:700;padding:3px 10px;border-radius:4px;letter-spacing:0.06em;text-transform:uppercase">Store Pallets</span>
+      <div style="margin-bottom:24px">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+          <span style="background:#2e7d52;color:#fff;font-size:10px;font-weight:700;padding:3px 10px;border-radius:4px;letter-spacing:0.06em;text-transform:uppercase">Store Pallets</span>
+          <button class="btn danger sm" onclick="bulkShipFromDashboard()" id="bulk-ship-btn" style="display:none">Ship Selected Stores</button>
         </div>
         <table class="data-table">
           <thead><tr>
             <th>Store</th><th>Alerts</th><th>Count</th><th>Total Weight</th><th>Last Routed</th><th></th>
           </tr></thead>
-          <tbody>${storeRows}</tbody>
+          <tbody>${buildRows(storeList)}</tbody>
         </table>
       </div>`;
 
-    if (!html) html = '<div class="empty">No pallets match this filter</div>';
+    if (warehouseNames.length > 0) {
+      html += `
+        <div>
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+            <span style="background:#5a6170;color:#fff;font-size:10px;font-weight:700;padding:3px 10px;border-radius:4px;letter-spacing:0.06em;text-transform:uppercase">Warehouse Pallets</span>
+          </div>
+          <table class="data-table">
+            <thead><tr>
+              <th>Warehouse</th><th>Alerts</th><th>Count</th><th>Total Weight</th><th>Last Routed</th><th></th>
+            </tr></thead>
+            <tbody>${buildRows(warehouseNames)}</tbody>
+          </table>
+        </div>`;
+    }
 
-    document.getElementById('dashboard-table-wrap').innerHTML = html;
   }
 
   function buildAlertBadges(pallets, bolCount) {
@@ -1124,6 +1166,43 @@
     if (!bestSeconds) return null;
     return new Date(bestSeconds * 1000).toLocaleDateString();
   }
+
+  // Show/hide bulk ship button when checkboxes are checked
+  document.addEventListener('change', function(e) {
+    if (e.target.classList.contains('dash-ship-cb')) {
+      const anyChecked = document.querySelectorAll('.dash-ship-cb:checked').length > 0;
+      const btn = document.getElementById('bulk-ship-btn');
+      if (btn) btn.style.display = anyChecked ? 'inline-flex' : 'none';
+    }
+  });
+
+  window.bulkShipFromDashboard = async function() {
+    const checked = document.querySelectorAll('.dash-ship-cb:checked');
+    if (!checked.length) return;
+    const storeNames = Array.from(checked).map(cb => cb.dataset.store);
+    const palletCount = storeNames.reduce((sum, name) => sum + (allPallets.filter(p => p.store === name).length), 0);
+    const result = await Swal.fire({
+      title: `Ship ${storeNames.length} store${storeNames.length>1?'s':''}?`,
+      html: `This will archive all <strong>${palletCount} pallet${palletCount!==1?'s':''}</strong> for:<br><br>${storeNames.map(s=>`<strong>${s}</strong>`).join('<br>')}`,
+      icon: 'question', showCancelButton: true,
+      confirmButtonColor: 'var(--danger)', confirmButtonText: 'Ship All'
+    });
+    if (!result.isConfirmed) return;
+    Swal.fire({ title: 'Processing...', didOpen: () => Swal.showLoading() });
+    const ids = allPallets.filter(p => storeNames.includes(p.store)).map(p => p.id);
+    const batch = writeBatch(db);
+    for (const id of ids) {
+      const pallet = allPallets.find(p => p.id === id);
+      if (pallet) {
+        batch.set(doc(collection(db, ARCHIVE)), { ...pallet, shippedAt: serverTimestamp() });
+        batch.delete(doc(db, PALLETS, id));
+      }
+    }
+    await batch.commit();
+    allPallets = allPallets.filter(p => !ids.includes(p.id));
+    Swal.fire({ title: 'Shipped!', html: `${ids.length} pallet${ids.length!==1?'s':''} archived.`, icon: 'success', timer: 2000, showConfirmButton: false });
+    loadDashboard();
+  };
 
   window.setDashTab = function(el, filter) {
     document.querySelectorAll('.tabs .tab').forEach(t => t.classList.remove('active'));
@@ -1159,10 +1238,13 @@
       if (p.optLithium) optParts.push(`Lithium (${p.optLithium})`);
       if (p.optAlkaline) optParts.push(`Alkaline (${p.optAlkaline})`);
       const optHtml = optParts.length ? `<div style="background:var(--warn-bg);padding:4px 8px;border-radius:4px;font-size:11px;border-left:3px solid var(--warn);color:var(--warn)">${optParts.join('<br>')}</div>` : '<span class="text-muted">—</span>';
-      const dateStr = p.createdAt ? new Date(p.createdAt.seconds*1000).toLocaleDateString() : '—';
+      const dateObj = p.createdAt ? new Date(p.createdAt.seconds*1000) : null;
+      const dateStr = dateObj ? dateObj.toLocaleDateString() : '—';
+      const timeStr = dateObj ? dateObj.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }) : '';
+      const dateDisplay = dateObj ? `<div style="font-family:'DM Mono',monospace;font-size:12px">${dateStr}</div><div style="font-size:10px;color:var(--text3)">${timeStr}</div>` : '—';
       return `<tr>
         <td><input type="checkbox" class="ship-cb" data-id="${p.id}" style="accent-color:var(--accent);width:15px;height:15px"></td>
-        <td class="mono">${dateStr}</td>
+        <td>${dateDisplay}</td>
         <td class="mono">${p.type === 'other' ? '<span style="color:var(--text3);font-style:italic;font-size:11px">—</span>' : (p.palletNumber || '—')}</td>
         <td><div class="badge-alerts">${statusBadges || '<span class="badge neutral">—</span>'}</div></td>
         <td class="mono">${p.length||'?'}×${p.width||'?'}×${p.height||'?'}</td>
@@ -1434,7 +1516,7 @@
       const sc = h.status === 'Assigned' ? 'success' : 'hazmat';
       const dateStr = h.createdAt ? new Date(h.createdAt.seconds*1000).toLocaleDateString() : '—';
       return `<tr>
-        <td class="mono">${dateStr}</td>
+        <td>${dateDisplay}</td>
         <td class="mono" style="color:var(--warn);font-weight:500">${h.hazmatId}</td>
         <td>${h.store}</td>
         <td class="mono">${h.quantity} lbs</td>
@@ -1859,44 +1941,53 @@
   };
 
   window.loadStoreManager = async function() {
-    const container = document.getElementById('store-list-container');
-    container.innerHTML = '<div class="loading">Loading...</div>';
+    const storeContainer = document.getElementById('store-list-container');
+    const warehouseContainer = document.getElementById('warehouse-list-container');
+    storeContainer.innerHTML = '<div class="loading">Loading...</div>';
+    if (warehouseContainer) warehouseContainer.innerHTML = '<div class="loading">Loading...</div>';
+
     const snap = await getDocs(collection(db, STORES));
-    const stores = snap.docs.map(d => ({ id: d.id, name: d.data().name })).sort((a,b) => a.name.localeCompare(b.name));
+    const all = snap.docs.map(d => ({ id: d.id, name: d.data().name, storeType: d.data().storeType || 'store' })).sort((a,b) => a.name.localeCompare(b.name));
+    const stores = all.filter(s => s.storeType !== 'warehouse');
+    const warehouses = all.filter(s => s.storeType === 'warehouse');
+
     document.getElementById('store-count-label').textContent = stores.length + ' total';
-    if (!stores.length) { container.innerHTML = '<div class="empty">No stores found</div>'; return; }
-    container.innerHTML = `
-      <table class="data-table">
+    if (document.getElementById('warehouse-count-label')) document.getElementById('warehouse-count-label').textContent = warehouses.length + ' total';
+
+    const buildTable = (items, emptyMsg) => {
+      if (!items.length) return `<div class="empty">${emptyMsg}</div>`;
+      return `<table class="data-table">
         <thead><tr><th>Name</th><th style="width:80px;text-align:center">Remove</th></tr></thead>
-        <tbody>
-          ${stores.map(s => `
-            <tr>
-              <td style="font-weight:500">${s.name}</td>
-              <td style="text-align:center">
-                <button class="btn danger sm" onclick="removeStore('${s.id}','${s.name}')">Remove</button>
-              </td>
-            </tr>`).join('')}
+        <tbody>${items.map(s => `
+          <tr>
+            <td style="font-weight:500">${s.name}</td>
+            <td style="text-align:center"><button class="btn danger sm" onclick="removeStore('${s.id}','${s.name}')">Remove</button></td>
+          </tr>`).join('')}
         </tbody>
       </table>`;
+    };
+
+    storeContainer.innerHTML = buildTable(stores, 'No stores found');
+    if (warehouseContainer) warehouseContainer.innerHTML = buildTable(warehouses, 'No warehouses found');
   };
 
   window.addNewStore = async function() {
     const input = document.getElementById('new-store-name');
+    const typeSelect = document.getElementById('new-store-type');
     const name = input.value.trim();
-    if (!name) { Swal.fire('Missing name', 'Please enter a store or warehouse name.', 'error'); return; }
-    // Check for duplicate
-    const existing = allStores.find(s => s.toLowerCase() === name.toLowerCase());
+    const storeType = typeSelect ? typeSelect.value : 'store';
+    if (!name) { Swal.fire('Missing name', 'Please enter a name.', 'error'); return; }
+    const existing = allStores.find(s => (s.name||s).toLowerCase() === name.toLowerCase());
     if (existing) { Swal.fire('Already exists', `"${name}" is already in the list.`, 'warning'); return; }
     Swal.fire({ title: 'Adding...', didOpen: () => Swal.showLoading() });
-    await addDoc(collection(db, STORES), { name });
-    allStores.push(name);
-    allStores.sort();
+    await addDoc(collection(db, STORES), { name, storeType });
     input.value = '';
+    await loadStores();
     loadStoreManager();
     loadRecipients();
     populateStoreSelects();
     populateArchiveStores();
-    Swal.fire({ title: 'Added!', html: `<strong>${name}</strong> has been added.`, icon: 'success', timer: 1500, showConfirmButton: false });
+    Swal.fire({ title: 'Added!', html: `<strong>${name}</strong> added as a ${storeType}.`, icon: 'success', timer: 1500, showConfirmButton: false });
   };
 
   window.removeStore = async function(id, name) {
