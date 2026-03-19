@@ -294,6 +294,7 @@
         <div class="topbar-title">Logistics Dashboard</div>
         <div class="topbar-actions">
           <button class="btn success" id="bol-banner-btn" style="display:none" onclick="showPage('bols')">BOLs ready</button>
+          <button class="btn" onclick="sendReportNow()" id="send-report-btn">Send Report</button>
           <button class="btn primary" onclick="showPage('entry')">+ New Pallet</button>
           <button class="btn" onclick="loadDashboard()">↻ Refresh</button>
         </div>
@@ -836,6 +837,9 @@
     updateDoc, deleteDoc, query, where, orderBy, serverTimestamp, writeBatch
   } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-firestore.js";
   import {
+    getFunctions, httpsCallable
+  } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-functions.js";
+  import {
     getStorage, ref, uploadBytesResumable, getDownloadURL,
     listAll, deleteObject, getMetadata
   } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-storage.js";
@@ -852,6 +856,7 @@
   const app = initializeApp(firebaseConfig);
   const db = getFirestore(app);
   const storage = getStorage(app);
+  const functions = getFunctions(app, 'us-central1');
 
   // ── Collections
   const PALLETS = 'pallets';
@@ -1765,6 +1770,37 @@
     setTimeout(() => { btn.textContent = orig; btn.classList.remove('success'); }, 1500);
   };
 
+
+  // ════════════════════════════════
+  // EMAIL REPORT
+  // ════════════════════════════════
+  window.sendReportNow = async function() {
+    const btn = document.getElementById('send-report-btn');
+    const result = await Swal.fire({
+      title: 'Send Pallet Report?',
+      html: 'This will email the current active pallet list to <strong>jlmathis@scheels.com</strong>',
+      icon: 'question', showCancelButton: true,
+      confirmButtonColor: '#b03030', confirmButtonText: 'Send Now'
+    });
+    if (!result.isConfirmed) return;
+    btn.disabled = true;
+    btn.textContent = 'Sending...';
+    Swal.fire({ title: 'Sending report...', didOpen: () => Swal.showLoading() });
+    try {
+      const sendReport = httpsCallable(functions, 'sendPalletReportNow');
+      const res = await sendReport();
+      Swal.fire({
+        title: 'Report Sent!',
+        html: `Email delivered with <strong>${res.data.count}</strong> active pallets.`,
+        icon: 'success', timer: 2500, showConfirmButton: false
+      });
+    } catch(err) {
+      Swal.fire('Error', err.message, 'error');
+    } finally {
+      btn.disabled = false;
+      btn.textContent = 'Send Report';
+    }
+  };
 
   // ════════════════════════════════
   // ADMIN — Store Manager
