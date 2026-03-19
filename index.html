@@ -1942,22 +1942,25 @@
   };
 
   window.addRecipient = async function() {
-    const emailInput = document.getElementById('new-recipient-email');
-    const nameInput = document.getElementById('new-recipient-name');
-    const email = emailInput.value.trim().toLowerCase();
-    const name = nameInput.value.trim();
-    if (!email) { Swal.fire('Missing email', 'Please enter an email address.', 'error'); return; }
-    if (!email.includes('@') || !email.includes('.')) { Swal.fire('Invalid email', 'Please enter a valid email address.', 'error'); return; }
-    // Check for duplicate
-    const snap = await getDocs(collection(db, 'emailRecipients'));
-    const existing = snap.docs.find(d => d.data().email === email);
-    if (existing) { Swal.fire('Already added', `${email} is already a recipient.`, 'warning'); return; }
-    Swal.fire({ title: 'Adding...', didOpen: () => Swal.showLoading() });
-    await addDoc(collection(db, 'emailRecipients'), { email, name, addedAt: serverTimestamp() });
-    emailInput.value = '';
-    nameInput.value = '';
-    loadRecipients();
-    Swal.fire({ title: 'Added!', html: `<strong>${email}</strong> will receive the daily report.`, icon: 'success', timer: 1500, showConfirmButton: false });
+    try {
+      const emailInput = document.getElementById('new-recipient-email');
+      const nameInput = document.getElementById('new-recipient-name');
+      const email = emailInput.value.trim().toLowerCase();
+      const name = nameInput.value.trim();
+      if (!email) { Swal.fire('Missing email', 'Please enter an email address.', 'error'); return; }
+      if (!email.includes('@') || !email.includes('.')) { Swal.fire('Invalid email', 'Please enter a valid email address.', 'error'); return; }
+      Swal.fire({ title: 'Adding...', didOpen: () => Swal.showLoading() });
+      const snap = await getDocs(collection(db, 'emailRecipients'));
+      const existing = snap.docs.find(d => d.data().email === email);
+      if (existing) { Swal.fire('Already added', `${email} is already a recipient.`, 'warning'); return; }
+      await addDoc(collection(db, 'emailRecipients'), { email, name, addedAt: serverTimestamp() });
+      emailInput.value = '';
+      nameInput.value = '';
+      loadRecipients();
+      Swal.fire({ title: 'Added!', html: `<strong>${email}</strong> will receive the daily report.`, icon: 'success', timer: 1500, showConfirmButton: false });
+    } catch(err) {
+      Swal.fire('Error', err.message, 'error');
+    }
   };
 
   window.removeRecipient = async function(id, email) {
