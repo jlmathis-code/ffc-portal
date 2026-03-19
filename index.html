@@ -666,6 +666,7 @@
         </div>
       </div>
       <div class="page-scroll" style="max-width:700px">
+
         <div class="form-card" style="margin-bottom:20px">
           <div class="form-card-title">Add New Store or Warehouse</div>
           <div style="display:flex;gap:10px;align-items:flex-end">
@@ -683,6 +684,31 @@
         <div id="store-list-container">
           <div class="loading">Loading stores...</div>
         </div>
+
+        <hr class="divider" style="margin:28px 0">
+
+        <div class="form-card" style="margin-bottom:20px">
+          <div class="form-card-title">Add Report Recipient</div>
+          <div style="display:flex;gap:10px;align-items:flex-end">
+            <div class="form-group" style="flex:1">
+              <label class="form-label">Email Address</label>
+              <input class="form-input" id="new-recipient-email" type="email" placeholder="e.g. someone@scheels.com">
+            </div>
+            <div class="form-group" style="width:160px">
+              <label class="form-label">Name (optional)</label>
+              <input class="form-input" id="new-recipient-name" type="text" placeholder="Display name">
+            </div>
+            <button class="btn primary" onclick="addRecipient()" style="margin-bottom:1px">Add</button>
+          </div>
+        </div>
+        <div class="section-header">
+          <div class="section-title">Daily Report Recipients</div>
+          <span id="recipient-count-label" style="font-size:12px;color:var(--text3)"></span>
+        </div>
+        <div id="recipient-list-container">
+          <div class="loading">Loading recipients...</div>
+        </div>
+
       </div>
     </div>
 
@@ -1820,6 +1846,7 @@
       closeModal('admin-modal');
       showPage('admin');
       loadStoreManager();
+    loadRecipients();
     } else {
       document.getElementById('admin-error').style.display = 'block';
       document.getElementById('admin-password').value = '';
@@ -1862,6 +1889,7 @@
     allStores.sort();
     input.value = '';
     loadStoreManager();
+    loadRecipients();
     populateStoreSelects();
     populateArchiveStores();
     Swal.fire({ title: 'Added!', html: `<strong>${name}</strong> has been added.`, icon: 'success', timer: 1500, showConfirmButton: false });
@@ -1878,8 +1906,70 @@
     await deleteDoc(doc(db, STORES, id));
     allStores = allStores.filter(s => s !== name);
     loadStoreManager();
+    loadRecipients();
     populateStoreSelects();
     populateArchiveStores();
+    Swal.fire({ title: 'Removed!', icon: 'success', timer: 1200, showConfirmButton: false });
+  };
+
+  // ════════════════════════════════
+  // ADMIN — Email Recipients
+  // ════════════════════════════════
+  window.loadRecipients = async function() {
+    const container = document.getElementById('recipient-list-container');
+    container.innerHTML = '<div class="loading">Loading...</div>';
+    const snap = await getDocs(collection(db, 'emailRecipients'));
+    const recipients = snap.docs.map(d => ({ id: d.id, ...d.data() })).sort((a,b) => a.email.localeCompare(b.email));
+    document.getElementById('recipient-count-label').textContent = recipients.length + ' recipient' + (recipients.length !== 1 ? 's' : '');
+    if (!recipients.length) {
+      container.innerHTML = '<div class="empty">No recipients yet — add one above</div>';
+      return;
+    }
+    container.innerHTML = `
+      <table class="data-table">
+        <thead><tr><th>Email</th><th>Name</th><th style="width:80px;text-align:center">Remove</th></tr></thead>
+        <tbody>
+          ${recipients.map(r => `
+            <tr>
+              <td class="mono" style="font-size:12px">${r.email}</td>
+              <td style="color:var(--text2)">${r.name || '<span class="text-muted">—</span>'}</td>
+              <td style="text-align:center">
+                <button class="btn danger sm" onclick="removeRecipient('${r.id}','${r.email}')">Remove</button>
+              </td>
+            </tr>`).join('')}
+        </tbody>
+      </table>`;
+  };
+
+  window.addRecipient = async function() {
+    const emailInput = document.getElementById('new-recipient-email');
+    const nameInput = document.getElementById('new-recipient-name');
+    const email = emailInput.value.trim().toLowerCase();
+    const name = nameInput.value.trim();
+    if (!email) { Swal.fire('Missing email', 'Please enter an email address.', 'error'); return; }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { Swal.fire('Invalid email', 'Please enter a valid email address.', 'error'); return; }
+    // Check for duplicate
+    const snap = await getDocs(collection(db, 'emailRecipients'));
+    const existing = snap.docs.find(d => d.data().email === email);
+    if (existing) { Swal.fire('Already added', `${email} is already a recipient.`, 'warning'); return; }
+    Swal.fire({ title: 'Adding...', didOpen: () => Swal.showLoading() });
+    await addDoc(collection(db, 'emailRecipients'), { email, name, addedAt: serverTimestamp() });
+    emailInput.value = '';
+    nameInput.value = '';
+    loadRecipients();
+    Swal.fire({ title: 'Added!', html: `<strong>${email}</strong> will receive the daily report.`, icon: 'success', timer: 1500, showConfirmButton: false });
+  };
+
+  window.removeRecipient = async function(id, email) {
+    const result = await Swal.fire({
+      title: 'Remove recipient?',
+      html: `Remove <strong>${email}</strong> from the daily report?`,
+      icon: 'warning', showCancelButton: true,
+      confirmButtonColor: 'var(--danger)', confirmButtonText: 'Remove'
+    });
+    if (!result.isConfirmed) return;
+    await deleteDoc(doc(db, 'emailRecipients', id));
+    loadRecipients();
     Swal.fire({ title: 'Removed!', icon: 'success', timer: 1200, showConfirmButton: false });
   };
 
