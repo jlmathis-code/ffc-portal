@@ -2589,3 +2589,265 @@ function renderStagedBols() {
 </script>
 </body>
 </html>
+
+<script>
+// ════════════════════════════════
+// PORTAL SETTINGS
+// ════════════════════════════════
+
+const PORTAL_SETTINGS_KEY = 'ffc-pallet-portal-settings';
+const PORTAL_DEFAULTS = {
+  theme: 'light',
+  accentColor: '#b03030',
+  compactMode: false,
+  portalName: 'FFC Pallet Portal'
+};
+
+const ACCENT_PRESETS = [
+  { label: 'Scheels Red', value: '#b03030' },
+  { label: 'Gold', value: '#c8860a' },
+  { label: 'Navy', value: '#1a3a6b' },
+  { label: 'Forest', value: '#1a6b3a' },
+  { label: 'Purple', value: '#6b46c1' },
+  { label: 'Teal', value: '#2a7a8a' },
+];
+
+function getPortalSettings() {
+  try {
+    const stored = localStorage.getItem(PORTAL_SETTINGS_KEY);
+    return stored ? { ...PORTAL_DEFAULTS, ...JSON.parse(stored) } : { ...PORTAL_DEFAULTS };
+  } catch { return { ...PORTAL_DEFAULTS }; }
+}
+
+function savePortalSettings(settings) {
+  localStorage.setItem(PORTAL_SETTINGS_KEY, JSON.stringify(settings));
+}
+
+function applyPortalSettings(settings) {
+  const root = document.documentElement;
+
+  // Accent color
+  root.style.setProperty('--accent', settings.accentColor);
+  root.style.setProperty('--accent-dark', shadeColor(settings.accentColor, -20));
+  root.style.setProperty('--accent-bg', hexToRgba(settings.accentColor, 0.08));
+  root.style.setProperty('--accent-border', hexToRgba(settings.accentColor, 0.4));
+
+  // Sidebar color follows accent
+  document.querySelectorAll('.sidebar').forEach(el => {
+    el.style.background = settings.accentColor;
+  });
+  document.querySelectorAll('.sidebar-logo').forEach(el => {
+    el.style.borderBottomColor = shadeColor(settings.accentColor, 15);
+  });
+  document.querySelectorAll('.sidebar-footer').forEach(el => {
+    el.style.borderTopColor = shadeColor(settings.accentColor, 15);
+  });
+  document.querySelectorAll('.nav-item:not(.active)').forEach(el => {
+    el.style.removeProperty('background');
+  });
+
+  // Primary buttons
+  document.querySelectorAll('.btn.primary').forEach(btn => {
+    btn.style.background = settings.accentColor;
+    btn.style.borderColor = settings.accentColor;
+  });
+
+  // Tab active state
+  document.querySelectorAll('.tab.active').forEach(tab => {
+    tab.style.color = settings.accentColor;
+    tab.style.background = hexToRgba(settings.accentColor, 0.08);
+  });
+
+  // Dark/Light mode
+  if (settings.theme === 'dark') {
+    root.style.setProperty('--bg', '#0f1117');
+    root.style.setProperty('--surface', '#1a1d27');
+    root.style.setProperty('--surface2', '#22263a');
+    root.style.setProperty('--border', '#2e3247');
+    root.style.setProperty('--border2', '#3a3f5c');
+    root.style.setProperty('--text', '#e8e8e8');
+    root.style.setProperty('--text2', '#a0a8c0');
+    root.style.setProperty('--text3', '#6070a0');
+    document.body.style.background = '#0f1117';
+    document.body.style.color = '#e8e8e8';
+  } else {
+    root.style.setProperty('--bg', '#f4f5f7');
+    root.style.setProperty('--surface', '#ffffff');
+    root.style.setProperty('--surface2', '#f0f1f3');
+    root.style.setProperty('--border', '#e4e6ea');
+    root.style.setProperty('--border2', '#c9cdd6');
+    root.style.setProperty('--text', '#1a1d23');
+    root.style.setProperty('--text2', '#4a5060');
+    root.style.setProperty('--text3', '#8c94a3');
+    document.body.style.background = '#f4f5f7';
+    document.body.style.color = '#1a1d23';
+  }
+
+  // Compact mode
+  document.querySelectorAll('.nav-item').forEach(el => {
+    el.style.padding = settings.compactMode ? '7px 22px' : '';
+    el.style.fontSize = settings.compactMode ? '12px' : '';
+  });
+  document.querySelectorAll('.content').forEach(el => {
+    el.style.padding = settings.compactMode ? '16px' : '';
+  });
+
+  // Portal name
+  const wordmark = document.querySelector('.sidebar-logo .wordmark');
+  if (wordmark) {
+    const vTag = wordmark.querySelector('.logo-v');
+    wordmark.textContent = settings.portalName + ' ';
+    if (vTag) wordmark.appendChild(vTag);
+  }
+
+  // Update swatch highlights
+  document.querySelectorAll('.pps-swatch').forEach(sw => {
+    const isActive = sw.dataset.color === settings.accentColor;
+    sw.style.border = isActive ? '3px solid white' : '3px solid transparent';
+    sw.style.boxShadow = isActive ? `0 0 0 2px ${settings.accentColor}` : 'none';
+    sw.style.transform = isActive ? 'scale(1.15)' : 'scale(1)';
+  });
+}
+
+function togglePortalSettings() {
+  const panel = document.getElementById('pps-panel');
+  const isOpen = panel.style.right === '0px';
+  panel.style.right = isOpen ? '-380px' : '0px';
+  if (!isOpen) renderSettingsPanel();
+}
+
+function renderSettingsPanel() {
+  const settings = getPortalSettings();
+  const isDark = settings.theme === 'dark';
+  const bg = isDark ? '#1a1d27' : '#ffffff';
+  const border = isDark ? '#2e3247' : '#e0e0e0';
+  const text = isDark ? '#e8e8e8' : '#1a1d23';
+  const muted = isDark ? '#6070a0' : '#8c94a3';
+  const inputBg = isDark ? '#0f1117' : '#f4f5f7';
+
+  document.getElementById('pps-panel').style.background = bg;
+  document.getElementById('pps-panel').style.borderLeftColor = border;
+
+  document.getElementById('pps-content').innerHTML = `
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:18px 20px;border-bottom:1px solid ${border};flex-shrink:0">
+      <div>
+        <div style="font-weight:800;font-size:14px;color:${text}">Settings</div>
+        <div style="font-size:10px;font-weight:700;color:${settings.accentColor};text-transform:uppercase;letter-spacing:0.08em">Portal Preferences</div>
+      </div>
+      <button onclick="togglePortalSettings()" style="background:none;border:none;color:${muted};cursor:pointer;font-size:18px;line-height:1;padding:4px">✕</button>
+    </div>
+
+    <div style="padding:20px;flex:1;overflow-y:auto">
+
+      <!-- THEME -->
+      <div style="margin-bottom:20px">
+        <div style="font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:0.08em;color:${settings.accentColor};margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid ${border}">Theme & Display</div>
+
+        <div style="margin-bottom:12px">
+          <div style="font-size:10px;font-weight:700;color:${muted};text-transform:uppercase;letter-spacing:0.05em;margin-bottom:6px">Mode</div>
+          <div style="display:flex;gap:8px">
+            <button onclick="updatePortalSetting('theme','dark')" style="flex:1;padding:8px;border:2px solid ${settings.theme==='dark' ? settings.accentColor : border};border-radius:8px;background:${settings.theme==='dark' ? hexToRgba(settings.accentColor, 0.1) : 'transparent'};color:${text};font-weight:700;font-size:12px;cursor:pointer;transition:all 0.15s">🌙 Dark</button>
+            <button onclick="updatePortalSetting('theme','light')" style="flex:1;padding:8px;border:2px solid ${settings.theme==='light' ? settings.accentColor : border};border-radius:8px;background:${settings.theme==='light' ? hexToRgba(settings.accentColor, 0.1) : 'transparent'};color:${text};font-weight:700;font-size:12px;cursor:pointer;transition:all 0.15s">☀️ Light</button>
+          </div>
+        </div>
+
+        <div style="margin-bottom:12px">
+          <div style="font-size:10px;font-weight:700;color:${muted};text-transform:uppercase;letter-spacing:0.05em;margin-bottom:6px">Compact Mode</div>
+          <div onclick="updatePortalSetting('compactMode',${!settings.compactMode})" style="width:44px;height:24px;border-radius:999px;background:${settings.compactMode ? settings.accentColor : border};cursor:pointer;position:relative;transition:background 0.2s">
+            <div style="position:absolute;top:3px;left:${settings.compactMode ? '23px' : '3px'};width:18px;height:18px;border-radius:50%;background:#fff;transition:left 0.2s;box-shadow:0 1px 4px rgba(0,0,0,0.3)"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ACCENT COLOR -->
+      <div style="margin-bottom:20px">
+        <div style="font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:0.08em;color:${settings.accentColor};margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid ${border}">Accent Color</div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          ${ACCENT_PRESETS.map(c => `
+            <div class="pps-swatch" data-color="${c.value}" onclick="updatePortalSetting('accentColor','${c.value}')" title="${c.label}"
+              style="width:30px;height:30px;border-radius:50%;background:${c.value};cursor:pointer;transition:all 0.15s;
+              border:${settings.accentColor===c.value ? '3px solid white' : '3px solid transparent'};
+              box-shadow:${settings.accentColor===c.value ? `0 0 0 2px ${c.value}` : 'none'};
+              transform:${settings.accentColor===c.value ? 'scale(1.15)' : 'scale(1)'}">
+            </div>
+          `).join('')}
+        </div>
+      </div>
+
+      <!-- PORTAL IDENTITY -->
+      <div style="margin-bottom:20px">
+        <div style="font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:0.08em;color:${settings.accentColor};margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid ${border}">Portal Identity</div>
+        <div style="margin-bottom:12px">
+          <div style="font-size:10px;font-weight:700;color:${muted};text-transform:uppercase;letter-spacing:0.05em;margin-bottom:6px">Portal Name</div>
+          <input type="text" id="pps-name-input" value="${settings.portalName}"
+            onchange="updatePortalSetting('portalName',this.value)"
+            style="width:100%;padding:8px 10px;border:1px solid ${border};border-radius:6px;background:${inputBg};color:${text};font-size:13px;box-sizing:border-box;font-family:'DM Sans',sans-serif;outline:none" />
+        </div>
+      </div>
+
+      <!-- RESET -->
+      <button onclick="resetPortalSettings()" style="width:100%;padding:8px;background:none;border:1px solid ${border};border-radius:8px;color:${muted};font-size:12px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif">
+        Reset to Defaults
+      </button>
+    </div>
+
+    <div style="padding:12px 20px;border-top:1px solid ${border};font-size:10px;color:${muted};flex-shrink:0">
+      FFC Pallet Portal • Saved to this device
+    </div>
+  `;
+}
+
+function updatePortalSetting(key, value) {
+  const settings = getPortalSettings();
+  settings[key] = value;
+  savePortalSettings(settings);
+  applyPortalSettings(settings);
+  renderSettingsPanel();
+}
+
+function resetPortalSettings() {
+  if (!confirm('Reset all settings to defaults?')) return;
+  savePortalSettings({ ...PORTAL_DEFAULTS });
+  applyPortalSettings({ ...PORTAL_DEFAULTS });
+  renderSettingsPanel();
+}
+
+// ── Color helpers ──
+function shadeColor(hex, percent) {
+  const num = parseInt(hex.replace('#',''), 16);
+  const amt = Math.round(2.55 * percent);
+  const R = Math.min(255, Math.max(0, (num >> 16) + amt));
+  const G = Math.min(255, Math.max(0, (num >> 8 & 0x00FF) + amt));
+  const B = Math.min(255, Math.max(0, (num & 0x0000FF) + amt));
+  return '#' + (0x1000000 + R*0x10000 + G*0x100 + B).toString(16).slice(1);
+}
+
+function hexToRgba(hex, alpha) {
+  const num = parseInt(hex.replace('#',''), 16);
+  const r = (num >> 16) & 255;
+  const g = (num >> 8) & 255;
+  const b = num & 255;
+  return `rgba(${r},${g},${b},${alpha})`;
+}
+
+// Close panel when clicking outside
+document.addEventListener('click', function(e) {
+  const panel = document.getElementById('pps-panel');
+  const btn = document.getElementById('portal-settings-btn');
+  if (!panel || !btn) return;
+  if (panel.style.right === '0px' && !panel.contains(e.target) && !btn.contains(e.target)) {
+    panel.style.right = '-380px';
+  }
+});
+
+// Init on load
+(function() {
+  const settings = getPortalSettings();
+  applyPortalSettings(settings);
+})();
+</script>
+
+<!-- Settings Panel -->
+<div id="pps-panel" style="position:fixed;top:0;right:-380px;width:360px;height:100vh;background:#fff;border-left:1px solid #e0e0e0;z-index:9999;display:flex;flex-direction:column;box-shadow:-8px 0 32px rgba(0,0,0,0.2);transition:right 0.25s cubic-bezier(0.4,0,0.2,1);overflow:hidden">
+  <div id="pps-content" style="display:flex;flex-direction:column;height:100%"></div>
+</div>
