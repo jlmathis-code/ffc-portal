@@ -1279,13 +1279,15 @@
     const palletCount = storeNames.reduce((sum, name) => sum + (allPallets.filter(p => p.store === name).length), 0);
     const result = await Swal.fire({
       title: `Ship ${storeNames.length} store${storeNames.length>1?'s':''}?`,
-      html: `This will archive all <strong>${palletCount} pallet${palletCount!==1?'s':''}</strong> for:<br><br>${storeNames.map(s=>`<strong>${s}</strong>`).join('<br>')}`,
+      html: `This will archive <strong>${bolCount} pallet${bolCount!==1?'s':''} with BOLs</strong> for:<br><br>${storeNames.map(s=>`<strong>${s}</strong>`).join('<br>')}${nobolCount ? `<br><br><span style="color:var(--text3);font-size:12px">${nobolCount} pallet${nobolCount!==1?'s':''} without BOLs will remain active</span>` : ''}`,
+      const bolCount = allPallets.filter(p => storeNames.includes(p.store) && p.bol && String(p.bol).trim()).length;
+      const nobolCount = allPallets.filter(p => storeNames.includes(p.store) && (!p.bol || !String(p.bol).trim())).length;
       icon: 'question', showCancelButton: true,
       confirmButtonColor: 'var(--danger)', confirmButtonText: 'Ship All'
     });
     if (!result.isConfirmed) return;
     Swal.fire({ title: 'Processing...', didOpen: () => Swal.showLoading() });
-    const ids = allPallets.filter(p => storeNames.includes(p.store)).map(p => p.id);
+    const ids = allPallets.filter(p => storeNames.includes(p.store) && p.bol && String(p.bol).trim()).map(p => p.id);
     const batch = writeBatch(db);
     for (const id of ids) {
       const pallet = allPallets.find(p => p.id === id);
