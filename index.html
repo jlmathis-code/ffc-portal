@@ -290,7 +290,7 @@
     <div class="nav-section">Operations</div>
     <div class="nav-item" onclick="showPage('gunpowder')">
       <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="5"/><path d="M8 5v3l2 1"/></svg>
-      Gun Powder
+      Smokeless Powder
       <span class="nav-pill green" id="nav-hazmat-count" style="display:none">0</span>
     </div>
     <div class="nav-item" onclick="showPage('bols')">
@@ -637,7 +637,7 @@
     <!-- ── GUN POWDER ── -->
     <div id="page-gunpowder" class="page">
       <div class="topbar">
-        <div class="topbar-title">Gun Powder Manager</div>
+        <div class="topbar-title">Smokeless Powder Manager</div>
         <div class="topbar-actions">
           <button class="btn primary" onclick="openGunPowderModal()">+ Create Pod</button>
         </div>
@@ -876,11 +876,11 @@
   </div>
 </div>
 
-<!-- Gun Powder Create Modal -->
+<!-- Smokeless Powder Create Modal -->
 <div class="modal-overlay" id="gunpowder-modal">
   <div class="modal">
     <div class="modal-header">
-      <div class="modal-title">Create Gun Powder Pod</div>
+      <div class="modal-title">Create Smokeless Powder Pod</div>
       <button class="modal-close" onclick="closeModal('gunpowder-modal')">✕</button>
     </div>
     <div class="modal-body">
@@ -1245,7 +1245,7 @@
     if (pallets.some(p => p.priority)) badges += `<span class="badge priority">Priority</span>`;
     if (pallets.some(p => p.overDim)) badges += `<span class="badge od">OD</span>`;
     if (pallets.some(p => p.optPrimers || p.optLithium || p.optAlkaline)) badges += `<span class="badge hazmat">Opt. Hazmat</span>`;
-    if (pallets.some(p => p.hazmatId && p.hazmatId.trim())) badges += `<span class="badge gunpowder">Gun Powder</span>`;
+    if (pallets.some(p => p.hazmatId && p.hazmatId.trim())) badges += `<span class="badge gunpowder">Smokeless Powder</span>`;
     if (pallets.some(p => p.ready)) badges += `<span class="badge ready">Ready</span>`;
     return badges;
   }
@@ -1625,12 +1625,12 @@
     navCount.style.display = allHazmat.length ? 'inline-block' : 'none';
     populateStoreSelects();
 
-    if (!allHazmat.length) { tbody.innerHTML = '<tr><td colspan="8" class="empty">No active Gun Powder Pods</td></tr>'; return; }
+    if (!allHazmat.length) { tbody.innerHTML = '<tr><td colspan="8" class="empty">No active Smokeless Powder Pods</td></tr>'; return; }
     tbody.innerHTML = allHazmat.map(h => {
       const sc = h.status === 'Assigned' ? 'success' : 'hazmat';
       const dateStr = h.createdAt ? new Date(h.createdAt.seconds*1000).toLocaleDateString() : '—';
       return `<tr>
-        <td>${dateDisplay}</td>
+        <td>${dateStr}</td>
         <td class="mono" style="color:var(--warn);font-weight:500">${h.hazmatId}</td>
         <td>${h.store}</td>
         <td class="mono">${h.quantity} lbs</td>
@@ -1657,7 +1657,7 @@
     if (!store || !weight || !cases) { Swal.fire('Missing fields', 'Please fill in all fields.', 'error'); return; }
     const hazmatId = generateHazmatId();
     Swal.fire({ title: 'Creating pod...', didOpen: () => Swal.showLoading() });
-    await addDoc(collection(db, HAZMAT), { hazmatId, store, quantity: Number(weight), cases: Number(cases), type: 'Gun Powder', status: 'Unassigned', assignedPallet: '', createdAt: serverTimestamp() });
+    await addDoc(collection(db, HAZMAT), { hazmatId, store, quantity: Number(weight), cases: Number(cases), type: 'Smokeless Powder', status: 'Unassigned', assignedPallet: '', createdAt: serverTimestamp() });
     closeModal('gunpowder-modal');
     document.getElementById('gp-store').value = '';
     document.getElementById('gp-weight').value = '';
@@ -1695,6 +1695,17 @@
   // ════════════════════════════════
   const BOL_PENDING_PATH = 'bol/pending';
   const BOL_ARCHIVE_PATH = 'bol/archive';
+async function refreshHazmatBadge() {
+  try {
+    const snap = await getDocs(collection(db, HAZMAT));
+    const count = snap.size;
+    const navPill = document.getElementById('nav-hazmat-count');
+    if (navPill) {
+      navPill.textContent = count;
+      navPill.style.display = count ? 'inline-block' : 'none';
+    }
+  } catch(e) { console.warn('Could not refresh hazmat badge:', e.message); }
+}
   
 async function refreshBolBadge() {
   const navPill = document.getElementById('nav-bol-count');
@@ -2566,7 +2577,7 @@ function renderStagedBols() {
 
   window.removeRecipient = async function(id, email) {
     const result = await Swal.fire({
-      title: 'Remove recipient?',
+      title: 'Remove recipient?',Frefresh
       html: `Remove <strong>${email}</strong> from the daily report?`,
       icon: 'warning', showCancelButton: true,
       confirmButtonColor: 'var(--danger)', confirmButtonText: 'Remove'
@@ -2581,10 +2592,11 @@ function renderStagedBols() {
   // INIT
   // ════════════════════════════════
   async function init() {
-    await loadStores();
-    await loadDashboard();
-    await refreshBolBadge();
-  }
+  await loadStores();
+  await loadDashboard();
+  await refreshBolBadge();
+  await refreshHazmatBadge();
+}
 
   init();
 </script>
