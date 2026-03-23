@@ -1272,35 +1272,39 @@
     }
   });
 
-  window.bulkShipFromDashboard = async function() {
-    const checked = document.querySelectorAll('.dash-ship-cb:checked');
-    if (!checked.length) return;
-    const storeNames = Array.from(checked).map(cb => cb.dataset.store);
-    const palletCount = storeNames.reduce((sum, name) => sum + (allPallets.filter(p => p.store === name).length), 0);
-    const result = await Swal.fire({
-      title: `Ship ${storeNames.length} store${storeNames.length>1?'s':''}?`,
-      html: `This will archive <strong>${bolCount} pallet${bolCount!==1?'s':''} with BOLs</strong> for:<br><br>${storeNames.map(s=>`<strong>${s}</strong>`).join('<br>')}${nobolCount ? `<br><br><span style="color:var(--text3);font-size:12px">${nobolCount} pallet${nobolCount!==1?'s':''} without BOLs will remain active</span>` : ''}`,
-      const bolCount = allPallets.filter(p => storeNames.includes(p.store) && p.bol && String(p.bol).trim()).length;
-      const nobolCount = allPallets.filter(p => storeNames.includes(p.store) && (!p.bol || !String(p.bol).trim())).length;
-      icon: 'question', showCancelButton: true,
-      confirmButtonColor: 'var(--danger)', confirmButtonText: 'Ship All'
-    });
-    if (!result.isConfirmed) return;
-    Swal.fire({ title: 'Processing...', didOpen: () => Swal.showLoading() });
-    const ids = allPallets.filter(p => storeNames.includes(p.store) && p.bol && String(p.bol).trim()).map(p => p.id);
-    const batch = writeBatch(db);
-    for (const id of ids) {
-      const pallet = allPallets.find(p => p.id === id);
-      if (pallet) {
-        batch.set(doc(collection(db, ARCHIVE)), { ...pallet, shippedAt: serverTimestamp() });
-        batch.delete(doc(db, PALLETS, id));
-      }
+window.bulkShipFromDashboard = async function() {
+  const checked = document.querySelectorAll('.dash-ship-cb:checked');
+  if (!checked.length) return;
+  const storeNames = Array.from(checked).map(cb => cb.dataset.store);
+  const bolIds = allPallets.filter(p => storeNames.includes(p.store) && p.bol && String(p.bol).trim()).map(p => p.id);
+  const noBolCount = allPallets.filter(p => storeNames.includes(p.store) && (!p.bol || !String(p.bol).trim())).length;
+
+  if (!bolIds.length) {
+    Swal.fire('No BOLs', 'None of the selected pallets have BOL numbers assigned.', 'info');
+    return;
+  }
+
+  const result = await Swal.fire({
+    title: `Ship ${storeNames.length} store${storeNames.length>1?'s':''}?`,
+    html: `This will archive <strong>${bolIds.length} pallet${bolIds.length!==1?'s':''} with BOLs</strong> for:<br><br>${storeNames.map(s=>`<strong>${s}</strong>`).join('<br>')}${noBolCount ? `<br><br><span style="color:var(--text3);font-size:12px">${noBolCount} pallet${noBolCount!==1?'s':''} without BOLs will remain active</span>` : ''}`,
+    icon: 'question', showCancelButton: true,
+    confirmButtonColor: 'var(--danger)', confirmButtonText: 'Ship All'
+  });
+  if (!result.isConfirmed) return;
+  Swal.fire({ title: 'Processing...', didOpen: () => Swal.showLoading() });
+  const batch = writeBatch(db);
+  for (const id of bolIds) {
+    const pallet = allPallets.find(p => p.id === id);
+    if (pallet) {
+      batch.set(doc(collection(db, ARCHIVE)), { ...pallet, shippedAt: serverTimestamp() });
+      batch.delete(doc(db, PALLETS, id));
     }
-    await batch.commit();
-    allPallets = allPallets.filter(p => !ids.includes(p.id));
-    Swal.fire({ title: 'Shipped!', html: `${ids.length} pallet${ids.length!==1?'s':''} archived.`, icon: 'success', timer: 2000, showConfirmButton: false });
-    loadDashboard();
-  };
+  }
+  await batch.commit();
+  allPallets = allPallets.filter(p => !bolIds.includes(p.id));
+  Swal.fire({ title: 'Shipped!', html: `${bolIds.length} pallet${bolIds.length!==1?'s':''} archived.`, icon: 'success', timer: 2000, showConfirmButton: false });
+  loadDashboard();
+};
 
   window.setDashTab = function(el, filter) {
     document.querySelectorAll('.tabs .tab').forEach(t => t.classList.remove('active'));
