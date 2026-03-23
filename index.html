@@ -1676,19 +1676,44 @@
     loadGunPowder();
   };
 
-  window.printHazmatLabel = function(hazmatId, store, qty, date) {
-    Swal.fire({
-      html: `<div style="font-family:'DM Sans',sans-serif;padding:20px;text-align:center;border:2px solid #333;border-radius:8px">
-        <div style="font-size:2rem;margin-bottom:8px">💥</div>
-        <div style="font-size:12px;font-weight:700;color:#dc2626;letter-spacing:0.1em;text-transform:uppercase;margin-bottom:8px">GUN POWDER POD</div>
-        <div style="font-size:1.6rem;font-weight:600;font-family:'DM Mono',monospace;letter-spacing:2px;margin:12px 0">${hazmatId}</div>
-        <div style="font-size:13px;margin:4px 0"><strong>Store:</strong> ${store}</div>
-        <div style="font-size:13px;margin:4px 0"><strong>Weight:</strong> ${qty} lbs</div>
-        <div style="font-size:11px;color:#666;margin-top:12px">${date}</div>
-      </div>`,
-      showConfirmButton: true, confirmButtonText: 'Print', showCancelButton: true, cancelButtonText: 'Close'
-    }).then(r => { if (r.isConfirmed) window.print(); });
-  };
+window.printHazmatLabel = function(hazmatId, store, qty, date) {
+  Swal.fire({
+    html: `<div id="hazmat-label-preview" style="font-family:'DM Sans',sans-serif;padding:20px;text-align:center;border:2px solid #333;border-radius:8px">
+      <div style="font-size:2rem;margin-bottom:8px">💥</div>
+      <div style="font-size:12px;font-weight:700;color:#dc2626;letter-spacing:0.1em;text-transform:uppercase;margin-bottom:8px">SMOKELESS POWDER POD</div>
+      <div style="font-size:1.6rem;font-weight:600;font-family:'DM Mono',monospace;letter-spacing:2px;margin:12px 0">${hazmatId}</div>
+      <div style="font-size:13px;margin:4px 0"><strong>Store:</strong> ${store}</div>
+      <div style="font-size:13px;margin:4px 0"><strong>Weight:</strong> ${qty} lbs</div>
+      <div style="font-size:11px;color:#666;margin-top:12px">${date}</div>
+    </div>`,
+    showConfirmButton: true, confirmButtonText: 'Print', showCancelButton: true, cancelButtonText: 'Close'
+  }).then(r => {
+    if (!r.isConfirmed) return;
+    const win = window.open('', '_blank', 'width=400,height=500');
+    win.document.write(`<!DOCTYPE html><html><head><title>Hazmat Label</title>
+      <style>
+        body { font-family: 'DM Sans', sans-serif; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; background: #fff; }
+        .label { text-align: center; border: 2px solid #333; border-radius: 8px; padding: 30px; max-width: 300px; }
+        .icon { font-size: 2.5rem; margin-bottom: 10px; }
+        .title { font-size: 13px; font-weight: 700; color: #dc2626; letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 10px; }
+        .hazmat-id { font-size: 2rem; font-weight: 600; font-family: monospace; letter-spacing: 3px; margin: 14px 0; }
+        .detail { font-size: 14px; margin: 5px 0; }
+        .date { font-size: 11px; color: #666; margin-top: 14px; }
+      </style>
+    </head><body>
+      <div class="label">
+        <div class="icon">💥</div>
+        <div class="title">SMOKELESS POWDER POD</div>
+        <div class="hazmat-id">${hazmatId}</div>
+        <div class="detail"><strong>Store:</strong> ${store}</div>
+        <div class="detail"><strong>Weight:</strong> ${qty} lbs</div>
+        <div class="date">${date}</div>
+      </div>
+      <script>window.onload = function() { window.print(); window.onafterprint = function() { window.close(); }; }<\/script>
+    </body></html>`);
+    win.document.close();
+  });
+};
 
   // ════════════════════════════════
   // BOL CENTER — Firebase Storage
