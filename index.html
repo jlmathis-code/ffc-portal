@@ -306,7 +306,34 @@
       <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 2a3 3 0 00-3 3v4a3 3 0 006 0V5a3 3 0 00-3-3z"/><path d="M5 6H2M14 6h-3M5 10H3M13 10h-2"/></svg>
       Bug Report
     </div>
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 2h6l4 4v8a1 1 0 01-1 1H4a1 1 0 01-1-1V3a1 1 0 011-1z"/><path d="M9 2v5h5"/></svg>
+      BOL Center
+      <span class="nav-pill" id="nav-bol-count" style="display:none">0</span>
+    </div>
+    <div class="nav-item" onclick="showPage('archive')">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1" y="3" width="14" height="3" rx="1"/><path d="M2 6v7a1 1 0 001 1h10a1 1 0 001-1V6"/><path d="M6 10h4"/></svg>
+      Archive Search
+    </div>
+    <div class="nav-item" onclick="showPage('bugs')">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 2a3 3 0 00-3 3v4a3 3 0 006 0V5a3 3 0 00-3-3z"/><path d="M5 6H2M14 6h-3M5 10H3M13 10h-2"/></svg>
+      Bug Report
+    </div>
 
+    <div class="sidebar-footer">
+      <div class="user-row" style="margin-bottom:10px">
+        <div class="avatar">JM</div>
+        <div>
+          <div class="user-name">FFC Team</div>
+          <div class="user-role">Scheels FFC</div>
+        </div>
+      </div>
+      <div class="nav-item" onclick="openAdminLogin()" style="margin:0;padding:8px 0;border-left:none;font-size:11px;color:#e8c0c0;letter-spacing:0.1em">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" style="width:14px;height:14px;opacity:0.6"><rect x="3" y="7" width="10" height="8" rx="1"/><path d="M5 7V5a3 3 0 016 0v2"/></svg>
+        ADMIN
+      </div>
+    </div>
+  <div id="portal-settings-btn" onclick="togglePortalSettings()" onmouseover="this.style.background='#c44040';this.style.color='#fff'" onmouseout="this.style.background='transparent';this.style.color='#e8c0c0'" style="margin-top:auto;padding:12px 22px;display:flex;align-items:center;gap:10px;cursor:pointer;border-top:1px solid #c44040;color:#e8c0c0;font-size:12px;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;transition:all 0.18s"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" style="width:15px;height:15px;opacity:0.75"><circle cx="8" cy="8" r="2.5"/><path d="M8 1v2M8 13v2M1 8h2M13 8h2M3.05 3.05l1.41 1.41M11.54 11.54l1.41 1.41M3.05 12.95l1.41-1.41M11.54 4.46l1.41-1.41"/></svg>Settings</div>
+  </aside>
     <div class="sidebar-footer">
       <div class="user-row" style="margin-bottom:10px">
         <div class="avatar">JM</div>
@@ -1188,10 +1215,12 @@
 
         rows += `<tr class="clickable${hasBol ? ' row-bol' : ''}" onclick='${canOpen ? `openDetail("${safeStoreJs}")` : ''}' style="${canOpen ? '' : 'opacity:0.55;cursor:default'}">
           <td>
-            <div style="display:flex;align-items:center;gap:8px">
-              <input type="checkbox" class="dash-ship-cb" data-store="${safeStoreHtml}" style="accent-color:var(--accent);width:14px;height:14px;flex-shrink:0" onclick="event.stopPropagation()" ${canOpen ? '' : 'disabled'}>
-              <div class="store-name">${safeStoreHtml}</div>
-            </div>
+<div style="display:flex;align-items:center;gap:8px">
+  <label onclick="event.stopPropagation()" style="display:flex;align-items:center;cursor:pointer">
+    <input type="checkbox" class="dash-ship-cb" data-store="${safeStoreHtml}" style="accent-color:var(--accent);width:14px;height:14px;flex-shrink:0;cursor:pointer" ${canOpen ? '' : 'disabled'}>
+  </label>
+  <div class="store-name">${safeStoreHtml}</div>
+</div>
           </td>
           <td><div class="badge-alerts">${alerts || '<span class="badge neutral">—</span>'}</div></td>
           <td class="mono">${sp.length || '<span style="color:var(--text3)">0</span>'}</td>
@@ -1293,13 +1322,20 @@ window.bulkShipFromDashboard = async function() {
   if (!result.isConfirmed) return;
   Swal.fire({ title: 'Processing...', didOpen: () => Swal.showLoading() });
   const batch = writeBatch(db);
-  for (const id of bolIds) {
-    const pallet = allPallets.find(p => p.id === id);
-    if (pallet) {
-      batch.set(doc(collection(db, ARCHIVE)), { ...pallet, shippedAt: serverTimestamp() });
-      batch.delete(doc(db, PALLETS, id));
+for (const id of bolIds) {
+  const pallet = allPallets.find(p => p.id === id);
+  if (pallet) {
+    batch.set(doc(collection(db, ARCHIVE)), { ...pallet, shippedAt: serverTimestamp() });
+    batch.delete(doc(db, PALLETS, id));
+    if (pallet.hazmatId && String(pallet.hazmatId).trim()) {
+      const hazmat = allHazmat.find(h => h.hazmatId === pallet.hazmatId);
+      if (hazmat) {
+        batch.set(doc(collection(db, 'hazmatArchive')), { ...hazmat, archivedAt: serverTimestamp() });
+        batch.delete(doc(db, HAZMAT, hazmat.id));
+      }
     }
   }
+}
   await batch.commit();
   allPallets = allPallets.filter(p => !bolIds.includes(p.id));
   Swal.fire({ title: 'Shipped!', html: `${bolIds.length} pallet${bolIds.length!==1?'s':''} archived.`, icon: 'success', timer: 2000, showConfirmButton: false });
@@ -1456,13 +1492,21 @@ window.bulkShipFromDashboard = async function() {
     if (!result.isConfirmed) return;
     Swal.fire({ title: 'Processing...', didOpen: () => Swal.showLoading() });
     const batch = writeBatch(db);
-    for (const id of ids) {
-      const pallet = allPallets.find(p => p.id === id);
-      if (pallet) {
-        batch.set(doc(collection(db, ARCHIVE)), { ...pallet, shippedAt: serverTimestamp() });
-        batch.delete(doc(db, PALLETS, id));
+for (const id of ids) {
+  const pallet = allPallets.find(p => p.id === id);
+  if (pallet) {
+    batch.set(doc(collection(db, ARCHIVE)), { ...pallet, shippedAt: serverTimestamp() });
+    batch.delete(doc(db, PALLETS, id));
+    // Archive any linked hazmat pod
+    if (pallet.hazmatId && String(pallet.hazmatId).trim()) {
+      const hazmat = allHazmat.find(h => h.hazmatId === pallet.hazmatId);
+      if (hazmat) {
+        batch.set(doc(collection(db, 'hazmatArchive')), { ...hazmat, archivedAt: serverTimestamp() });
+        batch.delete(doc(db, HAZMAT, hazmat.id));
       }
     }
+  }
+}
     await batch.commit();
     allPallets = allPallets.filter(p => !ids.includes(p.id));
     renderDetailTable();
