@@ -71,9 +71,11 @@
     .nav-item svg { width: 17px; height: 17px; opacity: 0.75; flex-shrink: 0; }
     .nav-item:hover svg { opacity: 1; }
     .nav-item.active svg { opacity: 1; }
-.nav-pill { margin-left: auto; background: #2e7d32; color: #fff; font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 10px; }
+    .nav-pill { margin-left: auto; background: #2e7d32; color: #fff; font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 10px; }
     .nav-pill.green { background: #2e7d32; }
-    .sidebar-footer { margin-top: auto; padding: 16px 22px; border-top: 1px solid #c44040; }
+    .sidebar-footer { margin-top: 0; padding: 16px 22px; border-top: 1px solid #c44040; }
+    .sidebar-bottom { margin-top: auto; }
+    .sidebar-footer { margin-top: 0; padding: 16px 22px; border-top: 1px solid #c44040; }
     .user-row { display: flex; align-items: center; gap: 10px; }
     .avatar { width: 32px; height: 32px; border-radius: 50%; background: #c84040; color: #fff; font-size: 12px; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0; border: 1px solid #cc4444; }
     .user-name { font-size: 12px; font-weight: 600; color: #ffffff; text-transform: uppercase; letter-spacing: 0.04em; }
@@ -311,20 +313,26 @@
       User How-To
     </div>
 
-    <div class="sidebar-footer">
-      <div class="user-row" style="margin-bottom:10px">
-        <div class="avatar">JM</div>
-        <div>
-          <div class="user-name">FFC Team</div>
-          <div class="user-role">Scheels FFC</div>
+    <div class="sidebar-bottom">
+      <div class="sidebar-footer">
+        <div class="user-row" style="margin-bottom:10px">
+          <div class="avatar">JM</div>
+          <div>
+            <div class="user-name">FFC Team</div>
+            <div class="user-role">Scheels FFC</div>
+          </div>
+        </div>
+        <div class="nav-item" onclick="openAdminLogin()" style="margin:0;padding:8px 0;border-left:none;font-size:11px;color:#e8c0c0;letter-spacing:0.1em">
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" style="width:14px;height:14px;opacity:0.6"><rect x="3" y="7" width="10" height="8" rx="1"/><path d="M5 7V5a3 3 0 016 0v2"/></svg>
+          ADMIN
         </div>
       </div>
-      <div class="nav-item" onclick="openAdminLogin()" style="margin:0;padding:8px 0;border-left:none;font-size:11px;color:#e8c0c0;letter-spacing:0.1em">
-        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" style="width:14px;height:14px;opacity:0.6"><rect x="3" y="7" width="10" height="8" rx="1"/><path d="M5 7V5a3 3 0 016 0v2"/></svg>
-        ADMIN
+
+      <div id="portal-settings-btn" onclick="togglePortalSettings()" onmouseover="this.style.background='#c44040';this.style.color='#fff'" onmouseout="this.style.background='transparent';this.style.color='#e8c0c0'" style="padding:12px 22px;display:flex;align-items:center;gap:10px;cursor:pointer;border-top:1px solid #c44040;color:#e8c0c0;font-size:12px;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;transition:all 0.18s">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" style="width:15px;height:15px;opacity:0.75"><circle cx="8" cy="8" r="2.5"/><path d="M8 1v2M8 13v2M1 8h2M13 8h2M3.05 3.05l1.41 1.41M11.54 11.54l1.41 1.41M3.05 12.95l1.41-1.41M11.54 4.46l1.41-1.41"/></svg>
+        Settings
       </div>
     </div>
-    <div id="portal-settings-btn" onclick="togglePortalSettings()" onmouseover="this.style.background='#c44040';this.style.color='#fff'" onmouseout="this.style.background='transparent';this.style.color='#e8c0c0'" style="margin-top:auto;padding:12px 22px;display:flex;align-items:center;gap:10px;cursor:pointer;border-top:1px solid #c44040;color:#e8c0c0;font-size:12px;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;transition:all 0.18s"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" style="width:15px;height:15px;opacity:0.75"><circle cx="8" cy="8" r="2.5"/><path d="M8 1v2M8 13v2M1 8h2M13 8h2M3.05 3.05l1.41 1.41M11.54 11.54l1.41 1.41M3.05 12.95l1.41-1.41M11.54 4.46l1.41-1.41"/></svg>Settings</div>
   </aside>
 
   <!-- ══════════════ PAGES ══════════════ -->
