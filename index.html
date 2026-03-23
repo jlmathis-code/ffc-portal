@@ -128,6 +128,12 @@
     .row-bol td { border-bottom-color: var(--success-row-border); }
     .row-bol .store-name { color: #c8860a; }
     .store-name { font-weight: 500; font-size: 13px; }
+    .store-sub {
+  font-size: 11px;
+  color: var(--text3);
+  margin-top: 2px;
+  line-height: 1.35;
+}
     .date-chip { font-size: 11px; color: #c8860a; font-weight: 500; background: #fef8ec; padding: 2px 7px; border-radius: 3px; font-family: 'DM Mono', monospace; }
     .date-none { font-size: 11px; color: var(--text3); }
 
@@ -1152,9 +1158,18 @@
         const alerts = buildAlertBadges(dp, bc);
         const safeDestHtml = escapeHtml(dest);
         const safeDestJs = escapeJsDoubleQuoted(dest);
-
+        const firstAddress = dp.find(p => p.address)?.address || {};
+        const safeAddressHtml = escapeHtml(
+          [
+            firstAddress.street,
+            [firstAddress.city, firstAddress.state].filter(Boolean).join(', '),
+            firstAddress.zip
+          ].filter(Boolean).join(' ')
+        );
         nsRows += `<tr class="clickable${hasBol ? ' row-bol' : ''}" onclick='openDetail("${safeDestJs}")'>
-          <td><div class="store-name">${safeDestHtml}</div></td>
+          <td><div class="store-name">${safeDestHtml}</div>
+  ${safeAddressHtml ? `<div class="store-sub">${safeAddressHtml}</div>` : ''}
+</td>
           <td><div class="badge-alerts">${alerts || '<span class="badge neutral">—</span>'}</div></td>
           <td class="mono">${dp.length}</td>
           <td class="mono">${weight.toLocaleString()} lbs</td>
@@ -1202,7 +1217,15 @@
           <td>
 <div style="display:flex;align-items:center;gap:8px">
   <label onclick="event.stopPropagation()" style="display:flex;align-items:center;cursor:pointer">
-    <input type="checkbox" class="dash-ship-cb" data-store="${safeStoreHtml}" style="accent-color:var(--accent);width:14px;height:14px;flex-shrink:0;cursor:pointer" ${canOpen ? '' : 'disabled'}>
+    <input
+      type="checkbox"
+      class="dash-ship-cb"
+      data-store="${safeStoreHtml}"
+      onclick="event.stopPropagation()"
+      onchange="event.stopPropagation()"
+      style="accent-color:var(--accent);width:14px;height:14px;flex-shrink:0;cursor:pointer"
+      ${canOpen ? '' : 'disabled'}
+    >
   </label>
   <div class="store-name">${safeStoreHtml}</div>
 </div>
