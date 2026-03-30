@@ -2685,13 +2685,7 @@ async function init() {
 
 init();
 
-  window.updateBulkShipBtn = function() {
-    setTimeout(function() {
-      const anyChecked = document.querySelectorAll('.dash-ship-cb:checked').length > 0;
-      const btn = document.getElementById('bulk-ship-btn');
-      if (btn) btn.style.display = anyChecked ? 'inline-flex' : 'none';
-    }, 0);
-  };
+
 </script>
 </body>
 </html>
@@ -2699,7 +2693,13 @@ init();
 // ════════════════════════════════
 // PORTAL SETTINGS
 // ════════════════════════════════
-
+  window.updateBulkShipBtn = function() {
+    setTimeout(function() {
+      const anyChecked = document.querySelectorAll('.dash-ship-cb:checked').length > 0;
+      const btn = document.getElementById('bulk-ship-btn');
+      if (btn) btn.style.display = anyChecked ? 'inline-flex' : 'none';
+    }, 0);
+  };
 const PORTAL_SETTINGS_KEY = 'ffc-pallet-portal-settings';
 const PORTAL_DEFAULTS = {
   theme: 'light',
