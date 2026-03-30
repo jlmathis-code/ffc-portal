@@ -1221,8 +1221,7 @@
       type="checkbox"
       class="dash-ship-cb"
       data-store="${safeStoreHtml}"
-      onclick="event.stopPropagation()"
-      onchange="event.stopPropagation()"
+      onclick="event.stopPropagation(); event.preventDefault(); this.checked = !this.checked; document.dispatchEvent(new Event('change', {bubbles:true}));"
       style="accent-color:var(--accent);width:14px;height:14px;flex-shrink:0;cursor:pointer"
       ${canOpen ? '' : 'disabled'}
     >
@@ -1301,13 +1300,13 @@
   }
 
   // Show/hide bulk ship button when checkboxes are checked
-  document.addEventListener('change', function(e) {
-    if (e.target.classList.contains('dash-ship-cb')) {
-      const anyChecked = document.querySelectorAll('.dash-ship-cb:checked').length > 0;
-      const btn = document.getElementById('bulk-ship-btn');
-      if (btn) btn.style.display = anyChecked ? 'inline-flex' : 'none';
-    }
-  });
+document.addEventListener('change', function(e) {
+  if (e.target && e.target.classList && e.target.classList.contains('dash-ship-cb')) {
+    const anyChecked = document.querySelectorAll('.dash-ship-cb:checked').length > 0;
+    const btn = document.getElementById('bulk-ship-btn');
+    if (btn) btn.style.display = anyChecked ? 'inline-flex' : 'none';
+  }
+});
 
 window.bulkShipFromDashboard = async function() {
   const checked = document.querySelectorAll('.dash-ship-cb:checked');
@@ -2674,10 +2673,15 @@ function renderStagedBols() {
   // ════════════════════════════════
   // INIT
   // ════════════════════════════════
-  async function init() {
+async function init() {
   await loadStores();
   await loadDashboard();
   await refreshBolBadge();
+  // Pre-load hazmat so bulk ship can archive linked pods
+  try {
+    const hazSnap = await getDocs(collection(db, HAZMAT));
+    allHazmat = hazSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+  } catch(e) {}
   await refreshHazmatBadge();
 }
 
