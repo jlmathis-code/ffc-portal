@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FFC Logistics Tools</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'DM Sans', sans-serif;
+      min-height: 100vh;
+      background: linear-gradient(135deg, #0f1117 0%, #1a1d27 60%, #0f1117 100%);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 2rem 1rem;
+      color: #e8e8e8;
+    }
+
+    .logo {
+      width: 72px;
+      height: 72px;
+      background: #9C2007;
+      border-radius: 18px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 2rem;
+      margin: 0 auto 1.5rem;
+      box-shadow: 0 8px 32px rgba(156, 32, 7, 0.4);
+    }
+
+    h1 {
+      font-size: 1.75rem;
+      font-weight: 800;
+      color: #e8e8e8;
+      text-align: center;
+      margin-bottom: 0.35rem;
+    }
+
+    .subtitle {
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: #9C2007;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      text-align: center;
+      margin-bottom: 3rem;
+    }
+
+    .cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 1.25rem;
+      width: 100%;
+      max-width: 680px;
+    }
+
+    .card {
+      background: #1a1d27;
+      border: 1px solid #2e3247;
+      border-radius: 16px;
+      padding: 2rem 1.75rem;
+      text-decoration: none;
+      color: inherit;
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+      transition: all 0.2s ease;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 3px;
+      border-radius: 16px 16px 0 0;
+    }
+
+    .card.inbound::before { background: #3b82f6; }
+    .card.pallet::before { background: #9C2007; }
+
+    .card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 12px 40px rgba(0,0,0,0.4);
+      border-color: #3a3f5c;
+    }
+
+    .card-icon {
+      width: 52px;
+      height: 52px;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.5rem;
+      flex-shrink: 0;
+    }
+
+    .card.inbound .card-icon { background: rgba(59,130,246,0.15); }
+    .card.pallet .card-icon { background: rgba(156,32,7,0.15); }
+
+    .card-label {
+      font-size: 1.1rem;
+      font-weight: 800;
+      color: #e8e8e8;
+    }
+
+    .card-desc {
+      font-size: 0.82rem;
+      color: #6b7a9a;
+      line-height: 1.5;
+    }
+
+    .card-arrow {
+      margin-top: auto;
+      font-size: 0.8rem;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+
+    .card.inbound .card-arrow { color: #3b82f6; }
+    .card.pallet .card-arrow { color: #9C2007; }
+
+    footer {
+      margin-top: 3rem;
+      font-size: 0.72rem;
+      color: #3a3f5c;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="logo">🏗️</div>
+  <h1>FFC Logistics Tools</h1>
+  <div class="subtitle">Scheels Fargo Fulfillment Center</div>
+
+  <div class="cards">
+
+    <a href="https://inbound.ffcpallet.com" target="_blank" class="card inbound">
+      <div class="card-icon">📦</div>
+      <div class="card-label">FTL Inbound Tracker</div>
+      <div class="card-desc">Track inbound FTL shipments, ETA status, BOL uploads, and appointment scheduling.</div>
+      <div class="card-arrow">Open Tracker →</div>
+    </a>
+
+    <a href="https://jlmathis-code.github.io/ffc-portal/" target="_blank" class="card pallet">
+      <div class="card-icon">🏗️</div>
+      <div class="card-label">Pallet Portal</div>
+      <div class="card-desc">Manage store pallets, BOL assignments, hazmat pods, and outbound routing.</div>
+      <div class="card-arrow">Open Portal →</div>
+    </a>
+
+  </div>
+
+  <footer>
+    Scheels FFC · Internal Use Only
+  </footer>
+
+</body>
+</html>
