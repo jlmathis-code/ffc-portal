@@ -1216,15 +1216,13 @@
         rows += `<tr class="clickable${hasBol ? ' row-bol' : ''}" onclick='${canOpen ? `openDetail("${safeStoreJs}")` : ''}' style="${canOpen ? '' : 'opacity:0.55;cursor:default'}">
           <td>
 <div style="display:flex;align-items:center;gap:8px">
-  <label onclick="event.stopPropagation()" style="display:flex;align-items:center;cursor:pointer">
-    <input
-      type="checkbox"
-      class="dash-ship-cb"
-      data-store="${safeStoreHtml}"
-      onclick="event.stopPropagation(); event.preventDefault(); this.checked = !this.checked; document.dispatchEvent(new Event('change', {bubbles:true}));"
-      style="accent-color:var(--accent);width:14px;height:14px;flex-shrink:0;cursor:pointer"
-      ${canOpen ? '' : 'disabled'}
-    >
+  <input
+    type="checkbox"
+    class="dash-ship-cb"
+    data-store="${safeStoreHtml}"
+    onclick="event.stopPropagation(); window.updateBulkShipBtn();"
+    style="accent-color:var(--accent);width:14px;height:14px;flex-shrink:0;cursor:pointer"
+    ${canOpen ? '' : 'disabled'}
   </label>
   <div class="store-name">${safeStoreHtml}</div>
 </div>
@@ -2685,11 +2683,18 @@ async function init() {
   await refreshHazmatBadge();
 }
 
-  init();
+init();
+
+  window.updateBulkShipBtn = function() {
+    setTimeout(function() {
+      const anyChecked = document.querySelectorAll('.dash-ship-cb:checked').length > 0;
+      const btn = document.getElementById('bulk-ship-btn');
+      if (btn) btn.style.display = anyChecked ? 'inline-flex' : 'none';
+    }, 0);
+  };
 </script>
 </body>
 </html>
-
 <script>
 // ════════════════════════════════
 // PORTAL SETTINGS
