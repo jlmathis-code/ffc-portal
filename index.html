@@ -1216,13 +1216,15 @@
         rows += `<tr class="clickable${hasBol ? ' row-bol' : ''}" onclick='${canOpen ? `openDetail("${safeStoreJs}")` : ''}' style="${canOpen ? '' : 'opacity:0.55;cursor:default'}">
           <td>
 <div style="display:flex;align-items:center;gap:8px">
-  <input
-    type="checkbox"
-    class="dash-ship-cb"
-    data-store="${safeStoreHtml}"
-    onclick="event.stopPropagation(); window.updateBulkShipBtn();"
-    style="accent-color:var(--accent);width:14px;height:14px;flex-shrink:0;cursor:pointer"
-    ${canOpen ? '' : 'disabled'}
+  <label onclick="event.stopPropagation()" style="display:flex;align-items:center;cursor:pointer">
+    <input
+      type="checkbox"
+      class="dash-ship-cb"
+      data-store="${safeStoreHtml}"
+      onclick="event.stopPropagation(); window.updateBulkShipBtn();"
+      style="accent-color:var(--accent);width:14px;height:14px;flex-shrink:0;cursor:pointer"
+      ${canOpen ? '' : 'disabled'}
+    >
   </label>
   <div class="store-name">${safeStoreHtml}</div>
 </div>
