@@ -947,6 +947,8 @@
 
 <!-- ══════════════ FIREBASE + APP LOGIC ══════════════ -->
 <script type="module">
+  // Add this import at the top with your other storage imports:
+  import { getBytes } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-storage.js";
   import { initializeApp } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-app.js";
   import {
     getFirestore, collection, doc, addDoc, getDoc, getDocs,
@@ -2009,6 +2011,13 @@ function renderStagedBols() {
       const monthYear = now.toLocaleString('default', { month: 'long' }) + ' ' + now.getFullYear();
       let count = 0;
       for (const item of listResult.items) {
+          const bytes = await getBytes(item);
+          const blob = new Blob([bytes], { type: 'application/pdf' });
+          const archiveRef = ref(storage, BOL_ARCHIVE_PATH + '/' + monthYear + '/' + item.name);
+          await uploadBytesResumable(archiveRef, blob);
+          await deleteObject(item);
+          count++;
+        }.items) {
         // Fetch the file bytes using the download URL (CORS now allowed)
         const url = await getDownloadURL(item);
         const response = await fetch(url);
