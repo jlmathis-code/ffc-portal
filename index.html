@@ -1994,48 +1994,36 @@ function renderStagedBols() {
     }
   };
 
-  window.archiveBolFiles = async function() {
-    const result = await Swal.fire({
-      title: 'Archive BOL files?',
-      text: 'Move all pending BOLs into a monthly archive folder in Storage.',
-      icon: 'question', showCancelButton: true,
-      confirmButtonColor: 'var(--accent)', confirmButtonText: 'Archive'
-    });
-    if (!result.isConfirmed) return;
-    Swal.fire({ title: 'Archiving...', didOpen: () => Swal.showLoading() });
-    try {
-      const pendingRef = ref(storage, BOL_PENDING_PATH);
-      const listResult = await listAll(pendingRef);
-      if (!listResult.items.length) { Swal.fire('No files', 'Nothing to archive.', 'info'); return; }
-      const now = new Date();
-      const monthYear = now.toLocaleString('default', { month: 'long' }) + ' ' + now.getFullYear();
-      let count = 0;
-      for (const item of listResult.items) {
-          const bytes = await getBytes(item);
-          const blob = new Blob([bytes], { type: 'application/pdf' });
-          const archiveRef = ref(storage, BOL_ARCHIVE_PATH + '/' + monthYear + '/' + item.name);
-          await uploadBytesResumable(archiveRef, blob);
-          await deleteObject(item);
-          count++;
-        }.items) {
-        // Fetch the file bytes using the download URL (CORS now allowed)
-        const url = await getDownloadURL(item);
-        const response = await fetch(url);
-        if (!response.ok) throw new Error('Could not fetch ' + item.name);
-        const blob = await response.blob();
-        // Upload to archive folder
-        const archiveRef = ref(storage, BOL_ARCHIVE_PATH + '/' + monthYear + '/' + item.name);
-        await uploadBytesResumable(archiveRef, blob);
-        // Delete from pending
-        await deleteObject(item);
-        count++;
-      }
-      loadBolFiles();
-      Swal.fire({ title: 'Archived!', html: count + ' BOL' + (count > 1 ? 's' : '') + ' moved to <strong>' + monthYear + '</strong>.', icon: 'success' });
-    } catch(err) {
-      Swal.fire('Error', err.message, 'error');
+window.archiveBolFiles = async function() {
+  const result = await Swal.fire({
+    title: 'Archive BOL files?',
+    text: 'Move all pending BOLs into a monthly archive folder in Storage.',
+    icon: 'question', showCancelButton: true,
+    confirmButtonColor: 'var(--accent)', confirmButtonText: 'Archive'
+  });
+  if (!result.isConfirmed) return;
+  Swal.fire({ title: 'Archiving...', didOpen: () => Swal.showLoading() });
+  try {
+    const pendingRef = ref(storage, BOL_PENDING_PATH);
+    const listResult = await listAll(pendingRef);
+    if (!listResult.items.length) { Swal.fire('No files', 'Nothing to archive.', 'info'); return; }
+    const now = new Date();
+    const monthYear = now.toLocaleString('default', { month: 'long' }) + ' ' + now.getFullYear();
+    let count = 0;
+    for (const item of listResult.items) {
+      const bytes = await getBytes(item);
+      const blob = new Blob([bytes], { type: 'application/pdf' });
+      const archiveRef = ref(storage, BOL_ARCHIVE_PATH + '/' + monthYear + '/' + item.name);
+      await uploadBytesResumable(archiveRef, blob);
+      await deleteObject(item);
+      count++;
     }
-  };
+    loadBolFiles();
+    Swal.fire({ title: 'Archived!', html: count + ' BOL' + (count > 1 ? 's' : '') + ' moved to <strong>' + monthYear + '</strong>.', icon: 'success' });
+  } catch(err) {
+    Swal.fire('Error', err.message, 'error');
+  }
+};
 
   // Drag & drop
   const dropZone = document.getElementById('bol-drop-zone');
